@@ -2,7 +2,7 @@
 // https://github.com/keijiro/unity-osc
 using System;
 
-namespace Osc
+namespace Eidetic.URack.Osc
 {
     using MessageQueue = System.Collections.Generic.Queue<Message>;
     

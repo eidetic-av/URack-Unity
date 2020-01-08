@@ -1,56 +1,102 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace Eidetic.URack
 {
-    public class Arena : MonoBehaviour
+    public class Arena : UModule
     {
-        public static Dictionary<int, MonoBehaviour> Instance = new Dictionary<int, MonoBehaviour>();
+        [SerializeField] Camera Camera;
+        [SerializeField] GameObject CameraOrigin;
+        [SerializeField] GameObject ForwardAxis;
+        [SerializeField] GameObject BackwardAxis;
+        [SerializeField] GameObject UpAxis;
+        [SerializeField] GameObject DownAxis;
+        [SerializeField] Volume PostProcessing;
+        [SerializeField] GameObject OriginMarker;
 
-        public int InstanceNumber { get; private set; }
-
-        Camera Camera;
-
-        public static Arena Create(int number) => new Arena(number);
-
-        private Arena(int number)
-        {
-            Instance[InstanceNumber = number] = this;
-        }
-        private Arena()
-        {
-            Instance[InstanceNumber = 23] = this;
-        }
-
+        Exposure ExposureComponent;
         void Start()
         {
-            Camera = GetComponentInChildren<Camera>();
+            Exposure exposure;
+            if (PostProcessing.profile.TryGet<Exposure>(out exposure))
+                ExposureComponent = exposure;
         }
 
-        public float CameraPositionX
+        public float CameraOriginX
         {
-            set => Camera.transform.position = Camera.transform.position.Replace(0, value);
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(0, value.Map(-10, 10));
         }
-        public float CameraPositionY
+        public float CameraOriginY
         {
-            set => Camera.transform.position = Camera.transform.position.Replace(1, value);
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(1, value.Map(-10, 10));
         }
-        public float CameraPositionZ
+        public float CameraOriginZ
         {
-            set => Camera.transform.position = Camera.transform.position.Replace(2, value);
-        }
-    }
-
-    public static class URackExtensions
-    {
-
-        public static Vector3 Replace(this Vector3 vector, int index, float value)
-        {
-            var newVector = vector;
-            newVector[index] = value;
-            return newVector;
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(2, value.Map(-10, 10));
         }
 
+        float cameraDistance;
+        public float CameraDistance
+        {
+            set
+            {
+                var diff = cameraDistance - value;
+                if (diff > 0)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, CameraOrigin.transform.position, Mathf.Abs(diff));
+                else
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, Mathf.Abs(diff));
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) > 10f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, CameraOrigin.transform.position, 0.01f);
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) < 0f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.01f);
+                cameraDistance = value;
+            }
+        }
+
+        float cameraHeight;
+        public float CameraHeight
+        {
+            set
+            {
+                var diff = cameraHeight - value;
+                if (diff > 0)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, DownAxis.transform.position, Mathf.Abs(diff));
+                else
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, UpAxis.transform.position, Mathf.Abs(diff));
+                if (Camera.transform.position.y > 10f) Camera.transform.position = Camera.transform.position.Replace(1, 10f);
+                else if (Camera.transform.position.y < -10f) Camera.transform.position = Camera.transform.position.Replace(1, -10f);
+                Camera.transform.LookAt(CameraOrigin.transform);
+                cameraHeight = value;
+            }
+        }
+
+        float cameraOrbit;
+        public float CameraOrbit
+        {
+            set
+            {
+                var newValue = value.Map(-180, 180);
+                Camera.transform.RotateAround(CameraOrigin.transform.position, Vector3.up, newValue - cameraOrbit);
+                Camera.transform.LookAt(CameraOrigin.transform);
+                cameraOrbit = newValue;
+            }
+        }
+
+        public float CameraFocalLength
+        {
+            set => Camera.focalLength = value.Map(6, 42);
+        }
+        public float Exposure
+        {
+            set => ExposureComponent.fixedExposure.value = value.Map(0, 20);
+        }
+        public bool MarkerEnable
+        {
+            set => OriginMarker.SetActive(value);
+        }
     }
 
 }
