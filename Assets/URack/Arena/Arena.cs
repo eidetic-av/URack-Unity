@@ -43,51 +43,41 @@ namespace Eidetic.URack
         {
             set
             {
-                var diff = cameraDistance - value;
-                if (diff > 0)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, CameraOrigin.transform.position, Mathf.Abs(diff));
-                else
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, Mathf.Abs(diff));
-                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) > 10f)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, CameraOrigin.transform.position, 0.01f);
-                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) < 0f)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.01f);
-                cameraDistance = value;
+                var cameraDistance = value.Clamp(0, 10);
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) > cameraDistance + 0.005f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, ForwardAxis.transform.position, 0.001f);
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) < cameraDistance - 0.005f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.001f);
             }
         }
 
-        float cameraHeight;
-        public float CameraHeight
+        float cameraOrbitX;
+        public float CameraOrbitX
         {
             set
             {
-                var diff = cameraHeight - value;
-                if (diff > 0)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, DownAxis.transform.position, Mathf.Abs(diff));
-                else
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, UpAxis.transform.position, Mathf.Abs(diff));
-                if (Camera.transform.position.y > 10f) Camera.transform.position = Camera.transform.position.Replace(1, 10f);
-                else if (Camera.transform.position.y < -10f) Camera.transform.position = Camera.transform.position.Replace(1, -10f);
-                Camera.transform.LookAt(CameraOrigin.transform);
-                cameraHeight = value;
+                var newValue = value.Map(-180f, 180f);
+                var diff = cameraOrbitX - newValue;
+                CameraOrigin.transform.Rotate(0, diff, -CameraOrigin.transform.eulerAngles.z);
+                cameraOrbitX = newValue;
             }
         }
 
-        float cameraOrbit;
-        public float CameraOrbit
+        float cameraOrbitY;
+        public float CameraOrbitY
         {
             set
             {
-                var newValue = value.Map(-180, 180);
-                Camera.transform.RotateAround(CameraOrigin.transform.position, Vector3.up, newValue - cameraOrbit);
-                Camera.transform.LookAt(CameraOrigin.transform);
-                cameraOrbit = newValue;
+                var newValue = value.Map(-180f, 180f);
+                var diff = cameraOrbitY - newValue;
+                CameraOrigin.transform.Rotate(diff, 0, -CameraOrigin.transform.eulerAngles.z);
+                cameraOrbitY = newValue;
             }
         }
 
         public float CameraFocalLength
         {
-            set => Camera.focalLength = value.Map(6, 42);
+            set => Camera.focalLength = value.Clamp(0, 10).Map(0, 10, 8, 180);
         }
         public float Exposure
         {
