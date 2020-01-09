@@ -21,6 +21,7 @@ namespace Eidetic.URack {
             return ((value - minIn) / (maxIn - minIn)) * (maxOut - minOut) + minOut;
         }
 
+        public static float Clamp(this float value) => value.Clamp(-5, 5);
         public static float Clamp(this float value, float min, float max) => Mathf.Clamp(value, min, max);
 
     }
