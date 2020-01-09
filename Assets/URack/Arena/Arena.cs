@@ -51,14 +51,17 @@ namespace Eidetic.URack
             }
         }
 
+        Vector3 orbit = new Vector3();
+
         float cameraOrbitX;
         public float CameraOrbitX
         {
             set
             {
                 var newValue = value.Map(-180f, 180f);
+                orbit = orbit.Replace(1, newValue);
                 var diff = cameraOrbitX - newValue;
-                CameraOrigin.transform.Rotate(0, diff, -CameraOrigin.transform.eulerAngles.z);
+                // CameraOrigin.transform.Rotate(0, diff, 0);
                 cameraOrbitX = newValue;
             }
         }
@@ -68,11 +71,17 @@ namespace Eidetic.URack
         {
             set
             {
-                var newValue = value.Map(-180f, 180f);
+                var newValue = value.Clamp().Map(89.99f, -89.99f);
+                orbit = orbit.Replace(0, newValue);
                 var diff = cameraOrbitY - newValue;
-                CameraOrigin.transform.Rotate(diff, 0, -CameraOrigin.transform.eulerAngles.z);
+                // CameraOrigin.transform.Rotate(diff, 0, 0);
                 cameraOrbitY = newValue;
             }
+        }
+
+        void Update()
+        {
+            CameraOrigin.transform.SetPositionAndRotation(CameraOrigin.transform.position, Quaternion.Euler(orbit));
         }
 
         public float CameraFocalLength
