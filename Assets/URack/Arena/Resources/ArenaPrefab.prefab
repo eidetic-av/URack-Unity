@@ -482,6 +482,7 @@ MonoBehaviour:
   UpAxis: {fileID: 6784875517676777082}
   DownAxis: {fileID: 6259916087703356748}
   PostProcessing: {fileID: 7952079598914522168}
+  Sky: {fileID: 7952079598509981139}
   OriginMarker: {fileID: 7318657710485946862}
 --- !u!1 &7952079598211933655
 GameObject:
@@ -693,7 +694,7 @@ GameObject:
   - component: {fileID: 7952079598509981136}
   - component: {fileID: 7952079598509981139}
   m_Layer: 0
-  m_Name: Sky and Fog Volume
+  m_Name: Sky
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -729,7 +730,7 @@ MonoBehaviour:
   priority: 0
   blendDistance: 0
   weight: 1
-  sharedProfile: {fileID: 11400000, guid: a123fc0ac58cb774e8592c925f167e7c, type: 2}
+  sharedProfile: {fileID: 11400000, guid: 8a16fca1b9fa6fe48907e2b5763d139e, type: 2}
 --- !u!1 &7952079598914522171
 GameObject:
   m_ObjectHideFlags: 0
