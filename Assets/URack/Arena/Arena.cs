@@ -33,7 +33,7 @@ namespace Eidetic.URack
         //----------------------------------
         // Private variables
         //----------------------------------
-        Exposure LightExposureComponent;
+        Exposure ExposureComponent;
         GradientSky GradientSkyComponent;
         Vector3 Orbit = Vector3.zero;
 
@@ -92,18 +92,30 @@ namespace Eidetic.URack
         {
             set => Camera.focalLength = value.Clamp(0, 10).Map(0, 10, 8, 180);
         }
-        public float LightExposure
+        public float CameraExposure
         {
-            set => LightExposureComponent.fixedExposure.value = value.Map(0, 20);
+            set => ExposureComponent.fixedExposure.value = value.Map(0, 20);
         }
-        public bool MarkerEnable
+        public float LightHue
         {
-            set => OriginMarker.SetActive(value);
+            set {}
+        }
+        public float LightSaturation
+        {
+            set {}
+        }
+        public float LightBrightness
+        {
+            set {}
         }
         public float SkyColorHarmony { get; set; }
         public float SkyColorPhase { get; set; }
         public float SkyColorDiffusion { get; set; }
         public float SkyExposure { get; set; }
+        public bool MarkerEnable
+        {
+            set => OriginMarker.SetActive(value);
+        }
 
         //----------------------------------
         // Unity magic methods
@@ -112,7 +124,7 @@ namespace Eidetic.URack
         {
             Exposure exposure;
             if (PostProcessing.profile.TryGet<Exposure>(out exposure))
-                LightExposureComponent = exposure;
+                ExposureComponent = exposure;
             GradientSky gradient;
             if (Sky.profile.TryGet<GradientSky>(out gradient))
                 GradientSkyComponent = gradient;
@@ -124,7 +136,7 @@ namespace Eidetic.URack
             CameraOrigin.transform.SetPositionAndRotation(CameraOrigin.transform.position, Quaternion.Euler(Orbit));
 
             // Set the Sky
-            
+
             // Calculate the base harmonies
             var harmony = SkyColorHarmony.Clamp(0, 10).Map(0, 10, 0, 1);
             Color topColor, midColor, bottomColor;
