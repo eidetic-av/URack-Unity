@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿
+using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using UnityEngine.Rendering;
@@ -40,19 +41,23 @@ namespace Eidetic.URack
         //----------------------------------
         // Setters for applying voltages
         //----------------------------------
+        [Input]
         public float CameraOriginX
         {
             set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(0, value.Map(-10, 10));
         }
+        [Input]
         public float CameraOriginY
         {
             set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(1, value.Map(-10, 10));
         }
+        [Input]
         public float CameraOriginZ
         {
             set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(2, value.Map(-10, 10));
         }
         float cameraDistance;
+        [Input]
         public float CameraDistance
         {
             set
@@ -65,6 +70,7 @@ namespace Eidetic.URack
             }
         }
         float cameraOrbitX;
+        [Input]
         public float CameraOrbitX
         {
             set
@@ -77,6 +83,7 @@ namespace Eidetic.URack
             }
         }
         float cameraOrbitY;
+        [Input]
         public float CameraOrbitY
         {
             set
@@ -88,30 +95,40 @@ namespace Eidetic.URack
                 cameraOrbitY = newValue;
             }
         }
+        [Input]
         public float CameraFocalLength
         {
             set => Camera.focalLength = value.Clamp(0, 10).Map(0, 10, 8, 180);
         }
+        [Input]
         public float CameraExposure
         {
             set => ExposureComponent.fixedExposure.value = value.Map(0, 20);
         }
+        [Input]
         public float LightHue
         {
-            set {}
+            set { }
         }
+        [Input]
         public float LightSaturation
         {
-            set {}
+            set { }
         }
+        [Input]
         public float LightBrightness
         {
-            set {}
+            set { }
         }
+        [Input]
         public float SkyColorHarmony { get; set; }
+        [Input]
         public float SkyColorPhase { get; set; }
+        [Input]
         public float SkyColorDiffusion { get; set; }
+        [Input]
         public float SkyExposure { get; set; }
+
         public bool MarkerEnable
         {
             set => OriginMarker.SetActive(value);
@@ -130,7 +147,7 @@ namespace Eidetic.URack
                 GradientSkyComponent = gradient;
         }
 
-        void Update()
+        override public void Process()
         {
             // perform the orbital camera rotaiton
             CameraOrigin.transform.SetPositionAndRotation(CameraOrigin.transform.position, Quaternion.Euler(Orbit));
