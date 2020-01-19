@@ -15,6 +15,16 @@ namespace Eidetic.URack {
         }
 
         ///<summary>
+        /// Return a copy of the vector with the value at the index replaced.
+        ///</summary>
+        public static Vector2 Replace(this Vector2 vector, int index, float value)
+        {
+            var newVector = vector;
+            newVector[index] = value;
+            return newVector;
+        }
+
+        ///<summary>
         /// Map a bi-directional voltage (+-5) to a new range.
         ///</summary>
         public static float Map(this float value, float minOut, float maxOut)
