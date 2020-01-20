@@ -108,7 +108,7 @@ namespace Eidetic.URack
         Dictionary<MethodBase, InputInfo> InputsBySetter = new Dictionary<MethodBase, InputInfo>();
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
 
-        void Update() { /* need this update method for patching in case the child doesn't call it */ }
+        public void Update() { /* need this update method for patching in case the child doesn't call it */ }
 
         struct InputInfo
         {
