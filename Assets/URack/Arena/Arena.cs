@@ -41,20 +41,20 @@ namespace Eidetic.URack
         //----------------------------------
         // Setters for applying voltages
         //----------------------------------
-        [Input]
+        [Input(-5, 5, -10, 10)]
         public float CameraOriginX
         {
-            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(0, value.Map(-10, 10));
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(0, value);
         }
-        [Input]
+        [Input(-5, 5, -10, 10)]
         public float CameraOriginY
         {
-            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(1, value.Map(-10, 10));
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(1, value);
         }
-        [Input]
+        [Input(-5, 5, -10, 10)]
         public float CameraOriginZ
         {
-            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(2, value.Map(-10, 10));
+            set => CameraOrigin.transform.position = CameraOrigin.transform.position.Replace(2, value);
         }
         float cameraDistance;
         [Input]
@@ -69,31 +69,15 @@ namespace Eidetic.URack
                     Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.001f);
             }
         }
-        float cameraOrbitX;
-        [Input]
+        [Input(-5, 5, -180, 180, false, 1, 1)]
         public float CameraOrbitX
         {
-            set
-            {
-                var newValue = value.Map(-180f, 180f);
-                Orbit = Orbit.Replace(1, newValue);
-                var diff = cameraOrbitX - newValue;
-                // CameraOrigin.transform.Rotate(0, diff, 0);
-                cameraOrbitX = newValue;
-            }
+            set => Orbit = Orbit.Replace(1, value);
         }
-        float cameraOrbitY;
-        [Input]
+        [Input(-5, 5, -180, 180, false, 1, 1)]
         public float CameraOrbitY
         {
-            set
-            {
-                var newValue = value.Clamp().Map(89.99f, -89.99f);
-                Orbit = Orbit.Replace(0, newValue);
-                var diff = cameraOrbitY - newValue;
-                // CameraOrigin.transform.Rotate(diff, 0, 0);
-                cameraOrbitY = newValue;
-            }
+            set => Orbit = Orbit.Replace(0, value);
         }
         [Input]
         public float CameraFocalLength
@@ -147,7 +131,7 @@ namespace Eidetic.URack
                 GradientSkyComponent = gradient;
         }
 
-        override public void Process()
+        public void Update()
         {
             // perform the orbital camera rotaiton
             CameraOrigin.transform.SetPositionAndRotation(CameraOrigin.transform.position, Quaternion.Euler(Orbit));

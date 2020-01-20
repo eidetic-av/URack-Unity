@@ -64,7 +64,8 @@ namespace Eidetic.URack
                             int instanceId = int.Parse(address[2]);
                             UModule moduleInstance = UModule.Instances.ContainsKey(instanceId) ?
                                 UModule.Instances[instanceId] : UModule.Create(address[1], instanceId);
-                            var targetProperty = moduleInstance.GetType().GetProperty(address[3]);
+                            var targetProperty = moduleInstance.GetType()
+                                .GetProperty(address[3]);
                             Targets[msg.path] = target = new TargetProperty(moduleInstance, targetProperty);
                         }
                         // set the value
