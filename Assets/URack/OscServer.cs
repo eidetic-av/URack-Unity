@@ -11,6 +11,7 @@ namespace Eidetic.URack
     public class OscServer : MonoBehaviour
     {
         public int ListenPort = 54321;
+        public bool LogIncoming = false;
 
         UdpClient UdpClient;
         IPEndPoint EndPoint;
@@ -34,6 +35,17 @@ namespace Eidetic.URack
             while (Parser.MessageCount > 0)
             {
                 var msg = Parser.PopMessage();
+
+                if (LogIncoming)
+                {
+                    string dataString = "";
+                    for (int i = 0; i < msg.data.Length; i++)
+                    {
+                        dataString += msg.data[i].ToString();
+                        if (i != msg.data.Length - 1) dataString += ", ";
+                    }
+                    Debug.Log(msg.path + "\n" + dataString);
+                }
 
                 var address = msg.path.Split('/');
                 switch (address[0].ToLower())
@@ -68,8 +80,27 @@ namespace Eidetic.URack
                                 .GetProperty(address[3]);
                             Targets[msg.path] = target = new TargetProperty(moduleInstance, targetProperty);
                         }
-                        // set the value
-                        if (target.Property.PropertyType == typeof(float))
+                        // connecting a port
+                        if (address[3] == "connect")
+                        {
+                            var moduleInstance = UModule.Instances[int.Parse(address[2])];
+                            var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
+                            var outputGetter = new UModule.Getter(outputGetMethod);
+                            var connectionInstance = UModule.Instances[(int)msg.data[1]];
+                            var inputSetMethod = connectionInstance.GetType().GetProperty((string)msg.data[2]).GetSetMethod();
+                            var inputSetter = new UModule.Setter(connectionInstance, inputSetMethod);
+                            moduleInstance.Connections.Add(outputGetter, inputSetter);
+                        }
+                        // disconnecting a port
+                        else if (address[3] == "disconnect")
+                        {
+                            var moduleInstance = UModule.Instances[int.Parse(address[2])];
+                            var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
+                            var outputGetter = new UModule.Getter(outputGetMethod);
+                            moduleInstance.Connections.Remove(outputGetter);
+                        }
+                        // seting a property value
+                        else if (target.Property.PropertyType == typeof(float))
                             target.Property.SetValue(target.Instance, (float)msg.data[0]);
                         else if (target.Property.PropertyType == typeof(int))
                             target.Property.SetValue(target.Instance, Mathf.RoundToInt((float)msg.data[0]));

@@ -150,8 +150,8 @@ namespace Eidetic.URack
 
                 // Move the processed points to the module's PointCloud instance
 
-                module.PointCloud.Points = new PointCloud.Point[transformJob.points.Length];
-                transformJob.points.CopyTo(module.PointCloud.Points);
+                module.PointCloudOutput.Points = new PointCloud.Point[transformJob.points.Length];
+                transformJob.points.CopyTo(module.PointCloudOutput.Points);
 
                 OutputPointCount = transformJob.points.Length;
 

@@ -6,8 +6,8 @@ namespace Eidetic.URack
 {
     public class LiveScan3D : UModule
     {
-        PointCloud pointCloud;
-        public PointCloud PointCloud => pointCloud ?? (pointCloud = ScriptableObject.CreateInstance<PointCloud>());
+        PointCloud pointCloudOutput;
+        public PointCloud PointCloudOutput => pointCloudOutput ?? (pointCloudOutput = ScriptableObject.CreateInstance<PointCloud>());
 
         public bool NewFrame { get; set; }
 

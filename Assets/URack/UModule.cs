@@ -23,8 +23,8 @@ namespace Eidetic.URack
             gameObject.name = instanceName;
 
             // set properties for the script
-            var moduleInstance = Instances[id]
-                = (UModule)gameObject.GetComponent(moduleName);
+
+            var moduleInstance = Instances[id] = gameObject.GetComponent<UModule>();
             moduleInstance.ModuleType = moduleName;
             moduleInstance.InstanceName = instanceName;
             moduleInstance.Id = id;
@@ -38,6 +38,9 @@ namespace Eidetic.URack
             // for each "Input" apply a prefix to the property's set method
             foreach (var inputProperty in inputProperties)
             {
+                if (inputProperty.PropertyType == typeof(PointCloud))
+                    continue;
+
                 var inputAttribute = inputProperty.GetCustomAttribute<InputAttribute>();
                 var inputInfo = new InputInfo(inputProperty, inputAttribute);
                 moduleInstance.Inputs.Add(inputInfo);
@@ -56,6 +59,10 @@ namespace Eidetic.URack
             var updateMethod = moduleType.GetMethod("Update");
             var valueUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ValueUpdate"));
             Patcher.Patch(updateMethod, valueUpdate);
+
+            // do the same for ConnectionUpdate
+            var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
+            Patcher.Patch(updateMethod, connectionUpdate);
 
             return moduleInstance;
         }
@@ -83,6 +90,9 @@ namespace Eidetic.URack
         {
             foreach (var input in __instance.Inputs)
             {
+                if (input.Property.PropertyType == typeof(PointCloud))
+                    continue;
+
                 var a = input.Attribute;
                 var currentValue = __instance.Voltages[input][0];
                 var newValue = __instance.Voltages[input][1];
@@ -100,6 +110,16 @@ namespace Eidetic.URack
             }
         }
 
+        public static void ConnectionUpdate(UModule __instance)
+        {
+            foreach (var connection in __instance.Connections)
+            {
+                var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
+                connection.Value.SetMethod
+                    .Invoke(connection.Value.ModuleInstance, new object[] { value });
+            }
+        }
+
         public int Id { get; private set; }
         public string ModuleType { get; private set; }
         public string InstanceName { get; private set; }
@@ -107,6 +127,8 @@ namespace Eidetic.URack
         List<InputInfo> Inputs = new List<InputInfo>();
         Dictionary<MethodBase, InputInfo> InputsBySetter = new Dictionary<MethodBase, InputInfo>();
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
+
+        public Dictionary<Getter, Setter> Connections { get; private set; } = new Dictionary<Getter, Setter>();
 
         public void Update() { /* need this update method for patching in case the child doesn't call it */ }
 
@@ -118,6 +140,25 @@ namespace Eidetic.URack
             {
                 Property = property;
                 Attribute = attribute;
+            }
+        }
+
+        public struct Getter
+        {
+            public MethodInfo GetMethod;
+            public Getter(MethodInfo getMethod)
+            {
+                GetMethod = getMethod;
+            }
+        }
+        public struct Setter
+        {
+            public UModule ModuleInstance;
+            public MethodInfo SetMethod;
+            public Setter(UModule moduleInstance, MethodInfo setMethod)
+            {
+                ModuleInstance = moduleInstance;
+                SetMethod = setMethod;
             }
         }
     }
