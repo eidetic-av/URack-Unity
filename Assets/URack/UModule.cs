@@ -129,7 +129,7 @@ namespace Eidetic.URack
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
 
         public Dictionary<Getter, Setter> Connections { get; private set; } = new Dictionary<Getter, Setter>();
-
+        
         public void Update() { /* need this update method for patching in case the child doesn't call it */ }
 
         struct InputInfo
