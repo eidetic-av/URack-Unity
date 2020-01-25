@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.VFX;
 using System;
 using System.Linq;
 using System.Net;
@@ -78,7 +79,16 @@ namespace Eidetic.URack
                                 UModule.Instances[instanceId] : UModule.Create(address[1], instanceId);
                             var targetProperty = moduleInstance.GetType()
                                 .GetProperty(address[3]);
-                            Targets[msg.path] = target = new TargetProperty(moduleInstance, targetProperty);
+
+                            var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
+                            if (isVFX)
+                            {
+                                var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
+                                target = new TargetProperty(moduleInstance, targetProperty, visualEffect);
+                            }
+                            else target = new TargetProperty(moduleInstance, targetProperty);
+
+                            Targets[msg.path] = target;
                         }
                         // connecting a port
                         if (address[3] == "connect")
@@ -99,7 +109,18 @@ namespace Eidetic.URack
                             var outputGetter = new UModule.Getter(outputGetMethod);
                             moduleInstance.Connections.Remove(outputGetter);
                         }
-                        // seting a property value
+                        // setting a VFX Blackboard value
+                        else if (target.IsVFX && target.Property == null)
+                        {
+                            var visualEffect = target.VisualEffect;
+                            if (visualEffect.HasFloat(address[3]))
+                                visualEffect.SetFloat(address[3], (float)msg.data[0]);
+                            else if (visualEffect.HasInt(address[3]))
+                                visualEffect.SetInt(address[3], (int)msg.data[0]);
+                            else if (visualEffect.HasBool(address[3]))
+                                visualEffect.SetBool(address[3], (bool)msg.data[0]);
+                        }
+                        // setting a property value
                         else if (target.Property.PropertyType == typeof(float))
                             target.Property.SetValue(target.Instance, (float)msg.data[0]);
                         else if (target.Property.PropertyType == typeof(int))
@@ -117,10 +138,13 @@ namespace Eidetic.URack
         {
             public UModule Instance;
             public PropertyInfo Property;
-            public TargetProperty(UModule instance, PropertyInfo property)
+            public bool IsVFX => (VisualEffect != null);
+            public VisualEffect VisualEffect;
+            public TargetProperty(UModule instance, PropertyInfo property, VisualEffect visualEffect = null)
             {
                 Instance = instance;
                 Property = property;
+                VisualEffect = visualEffect;
             }
         }
 
