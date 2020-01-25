@@ -1,6 +1,10 @@
 using UnityEngine;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace Eidetic.URack {
+namespace Eidetic.URack
+{
     public static class URackExtensions
     {
         ///<summary>
@@ -81,5 +85,11 @@ namespace Eidetic.URack {
         /// Destroy a GameObject.
         /// </summary>
         public static void Destroy(this GameObject gameObject) => GameObject.Destroy(gameObject);
+
+        /// <summary>
+        /// Return all types in the domain that derive from a specific base.
+        /// </summary>
+        public static List<Type> GetAllDerivedTypes(this AppDomain appDomain, Type type) =>
+            appDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(t => t.IsSubclassOf(type)).ToList();
     }
 }
