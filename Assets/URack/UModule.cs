@@ -12,6 +12,7 @@ namespace Eidetic.URack
         public static Dictionary<int, UModule> Instances { get; private set; } = new Dictionary<int, UModule>();
 
         static HarmonyInstance Patcher;
+        static List<Type> PatchedTypes = new List<Type>();
 
         static UModule() => Patcher = HarmonyInstance.Create("com.eidetic.urack.umodule");
 
@@ -30,8 +31,8 @@ namespace Eidetic.URack
             moduleInstance.Id = id;
 
             // Apply patches for automatic input voltage processing
-
             var moduleType = Type.GetType("Eidetic.URack." + moduleName);
+
             var inputProperties = moduleType.GetProperties()
                 .Where(p => p.GetCustomAttribute<InputAttribute>() != null).ToArray();
 
@@ -52,17 +53,22 @@ namespace Eidetic.URack
                 var prefix = new HarmonyMethod(typeof(UModule).GetMethod("SetterPrefix"));
                 Patcher.Patch(inputProperty.GetSetMethod(), prefix);
             }
+            
+            if (PatchedTypes.Contains(moduleType)) return moduleInstance;
 
             // and apply the prefix for the module's Update method
             // to perform processing (mapping + smoothing) without the module
             // needing to call any ValueUpdate method manually
             var updateMethod = moduleType.GetMethod("Update");
             var valueUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ValueUpdate"));
+
             Patcher.Patch(updateMethod, valueUpdate);
 
             // do the same for ConnectionUpdate
             var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
             Patcher.Patch(updateMethod, connectionUpdate);
+
+            PatchedTypes.Add(moduleType);
 
             return moduleInstance;
         }
@@ -88,35 +94,43 @@ namespace Eidetic.URack
 
         public static void ValueUpdate(UModule __instance)
         {
-            foreach (var input in __instance.Inputs)
+            if (__instance.Active)
             {
-                if (input.Property.PropertyType == typeof(PointCloud))
-                    continue;
+                foreach (var input in __instance.Inputs)
+                {
+                    if (input.Property.PropertyType == typeof(PointCloud))
+                        continue;
 
-                var a = input.Attribute;
-                var currentValue = __instance.Voltages[input][0];
-                var newValue = __instance.Voltages[input][1];
+                    var a = input.Attribute;
+                    var currentValue = __instance.Voltages[input][0];
+                    var newValue = __instance.Voltages[input][1];
 
-                // perform smoothing
-                if (Mathf.Abs(currentValue - newValue) > Mathf.Epsilon)
-                    currentValue = currentValue + (newValue - currentValue) / a.Smoothing;
-                // perform mapping
-                float mappedValue = currentValue.Map(a.MinInput, a.MaxInput, a.MinOutput, a.MaxOutput, a.Exponent);
-                if (a.Clamp) mappedValue.Clamp(a.MinOutput, a.MaxOutput);
-                // run setter
-                input.Property.SetValue(__instance, mappedValue);
-                // rewrite the voltage store because we updated the vector by running the setter
-                __instance.Voltages[input] = new Vector2(currentValue, newValue);
+                    // perform smoothing
+                    // Todo: rn this is tied to frame-rate
+                    if (Mathf.Abs(currentValue - newValue) > Mathf.Epsilon)
+                        currentValue = currentValue + (newValue - currentValue) / a.Smoothing;
+                    // perform mapping
+                    float mappedValue = currentValue.Map(a.MinInput, a.MaxInput, a.MinOutput, a.MaxOutput, a.Exponent);
+                    if (a.Clamp) mappedValue.Clamp(a.MinOutput, a.MaxOutput);
+                    // run setter
+                    input.Property.SetValue(__instance, mappedValue);
+                    // rewrite the voltage store because we updated the vector by running the setter
+                    __instance.Voltages[input] = new Vector2(currentValue, newValue);
+                }
             }
         }
 
         public static void ConnectionUpdate(UModule __instance)
         {
-            foreach (var connection in __instance.Connections)
+            if (__instance.Active)
             {
-                var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
-                connection.Value.SetMethod
-                    .Invoke(connection.Value.ModuleInstance, new object[] { value });
+                foreach (var connection in __instance.Connections)
+                {
+                    var connectionInstance = connection.Value.ModuleInstance;
+                    if (!connectionInstance.Active) continue;
+                    var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
+                    connection.Value.SetMethod.Invoke(connectionInstance, new object[] { value });
+                }
             }
         }
 
@@ -129,7 +143,13 @@ namespace Eidetic.URack
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
 
         public Dictionary<Getter, Setter> Connections { get; private set; } = new Dictionary<Getter, Setter>();
-        
+
+        public bool Active
+        {
+            get => gameObject.activeInHierarchy;
+            set => gameObject.SetActive(value);
+        }
+
         public void Update() { /* need this update method for patching in case the child doesn't call it */ }
 
         struct InputInfo

@@ -84,7 +84,10 @@ namespace Eidetic.URack
         /// <summary>
         /// Destroy a GameObject.
         /// </summary>
-        public static void Destroy(this GameObject gameObject) => GameObject.Destroy(gameObject);
+        public static void Destroy(this GameObject gameObject)
+        {
+            if (gameObject) GameObject.Destroy(gameObject);
+        }
 
         /// <summary>
         /// Return all types in the domain that derive from a specific base.

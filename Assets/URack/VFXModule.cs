@@ -37,7 +37,7 @@ namespace Eidetic.URack
         }
 
         [Input]
-        public PointCloud PointCloudInput
+        public PointCloud PointCloud
         {
             set
             {

@@ -8,10 +8,10 @@ namespace Eidetic.URack
         [AttributeUsage(AttributeTargets.Property)]
         public class InputAttribute : Attribute
         {
-            const float DefaultMinInput = -5;
-            const float DefaultMaxInput = 5;
-            const float DefaultMinOutput = -5;
-            const float DefaultMaxOutput = 5;
+            const float DefaultMinInput = 0;
+            const float DefaultMaxInput = 10;
+            const float DefaultMinOutput = 0;
+            const float DefaultMaxOutput = 10;
             const float DefaultExponent = 1;
             const bool DefaultClamp = false;
             const float DefaultSmoothing = 3;

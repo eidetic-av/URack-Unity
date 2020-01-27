@@ -49,24 +49,31 @@ namespace Eidetic.URack
                 }
 
                 var address = msg.path.Split('/');
-                switch (address[0].ToLower())
+                switch (address[0])
                 {
-                    case "add":
+                    case "Add":
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
-                    case "remove":
-                        UModule.Remove((int)msg.data[1]);
-                        break;
-                    case "reset":
+                    case "Remove":
                         UModule.Remove((int)msg.data[1]);
                         // remove all references to the properties in the Target list
                         // so that the osc address doesn't point to destroyed references
+                        var moduleAddress = msg.data[0] + "/" + msg.data[1];
                         var removeTargets = Targets.Keys
-                            .Where(key => key.Contains(msg.data[0] + "/" + msg.data[1]));
-                        foreach (var key in removeTargets) Targets.Remove(key);
+                            .Where(key => key.Contains(moduleAddress)).ToList();
+                        foreach(var removeTarget in removeTargets)
+                            Targets.Remove(removeTarget);
+                        break;
+                    case "Reset":
+                        UModule.Remove((int)msg.data[1]);
+                        var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
+                        var resetRemoveTargets = Targets.Keys
+                            .Where(key => key.Contains(resetModuleAddress)).ToList();
+                        foreach(var removeTarget in resetRemoveTargets)
+                            Targets.Remove(removeTarget);
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
-                    case "instance":
+                    case "Instance":
                         TargetProperty target;
                         if (Targets.ContainsKey(msg.path)) target = Targets[msg.path];
                         else
@@ -91,7 +98,7 @@ namespace Eidetic.URack
                             Targets[msg.path] = target;
                         }
                         // connecting a port
-                        if (address[3] == "connect")
+                        if (address[3] == "Connect")
                         {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
                             var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
@@ -102,7 +109,7 @@ namespace Eidetic.URack
                             moduleInstance.Connections.Add(outputGetter, inputSetter);
                         }
                         // disconnecting a port
-                        else if (address[3] == "disconnect")
+                        else if (address[3] == "Disconnect")
                         {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
                             var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
@@ -118,7 +125,7 @@ namespace Eidetic.URack
                             else if (visualEffect.HasInt(address[3]))
                                 visualEffect.SetInt(address[3], (int)msg.data[0]);
                             else if (visualEffect.HasBool(address[3]))
-                                visualEffect.SetBool(address[3], (bool)msg.data[0]);
+                                visualEffect.SetBool(address[3], (float)msg.data[0] > 0);
                         }
                         // setting a property value
                         else if (target.Property.PropertyType == typeof(float))
@@ -126,7 +133,7 @@ namespace Eidetic.URack
                         else if (target.Property.PropertyType == typeof(int))
                             target.Property.SetValue(target.Instance, Mathf.RoundToInt((float)msg.data[0]));
                         else if (target.Property.PropertyType == typeof(bool))
-                            target.Property.SetValue(target.Instance, (float)msg.data[0] >= 0 ? true : false);
+                            target.Property.SetValue(target.Instance, (float)msg.data[0] > 0);
                         else if (target.Property.PropertyType == typeof(string))
                             target.Property.SetValue(target.Instance, msg.data[0]);
                         break;
