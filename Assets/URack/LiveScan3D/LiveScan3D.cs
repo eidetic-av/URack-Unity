@@ -62,6 +62,7 @@ namespace Eidetic.URack
 
         public void OnDestroy()
         {
+            if (Receiver == null) return;
             if (Receiver.StreamingModules.Contains(this))
                 Receiver.StreamingModules.Remove(this);
             if (Receiver.StreamingModules.Count == 0)
