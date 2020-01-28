@@ -29,11 +29,11 @@ namespace Eidetic.URack
 
         [Input] public float TranslationZ { get; set; }
 
-        [Input] public float RotationX { get; set; }
+        [Input(-5, 5, -180, 180)] public float RotationX { get; set; }
 
-        [Input] public float RotationY { get; set; }
+        [Input(-5, 5, -180, 180)] public float RotationY { get; set; }
 
-        [Input] public float RotationZ { get; set; }
+        [Input(-5, 5, -180, 180)] public float RotationZ { get; set; }
 
         [Input] public float ScaleX { get; set; }
 
