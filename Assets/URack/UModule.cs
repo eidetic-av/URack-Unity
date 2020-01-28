@@ -22,7 +22,6 @@ namespace Eidetic.URack
             var gameObject = Instantiate(Resources.Load<GameObject>(moduleName + "Prefab"));
             var instanceName = moduleName + "Instance" + id;
             gameObject.name = instanceName;
-
             // set properties for the script
 
             var moduleInstance = Instances[id] = gameObject.GetComponent<UModule>();
