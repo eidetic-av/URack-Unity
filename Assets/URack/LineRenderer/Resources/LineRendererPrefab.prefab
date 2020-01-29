@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 67670944571093006}
   - component: {fileID: 8893085226958796473}
   m_Layer: 0
-  m_Name: RendererPrefab
+  m_Name: LineRendererPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -56,7 +56,7 @@ VisualEffect:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3464084425758629604}
   m_Enabled: 1
-  m_Asset: {fileID: 8926484042661614526, guid: a2a437b2d96754447b62787ddf2fafa9, type: 3}
+  m_Asset: {fileID: 8926484042661614526, guid: f7cd5c80e0a5d714aabd47bc204cf484, type: 3}
   m_InitialEventName: OnPlay
   m_InitialEventNameOverriden: 1
   m_StartSeed: 0

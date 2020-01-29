@@ -282,7 +282,7 @@ namespace Eidetic.URack
         }
 
         [BurstCompile]
-        struct BuildFilteredArrayJob : IJobParallelFor
+        public struct BuildFilteredArrayJob : IJobParallelFor
         {
 
             [ReadOnly] public NativeArray<PointCloud.Point> unfilteredPoints;
