@@ -182,7 +182,7 @@ namespace Eidetic.URack
             while (SendQueue.Count > 0)
             {
                 var item = SendQueue.Dequeue();
-                var address = item.Item1;
+                var address = "/Instance" + item.Item1;
                 var type = item.Item2;
                 var value = item.Item3;
 
