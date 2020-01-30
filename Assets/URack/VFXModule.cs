@@ -28,7 +28,7 @@ namespace Eidetic.URack
 
         public virtual void Start()
         {
-            VisualEffect.Play();
+            VisualEffect?.Play();
         }
 
         public void Exit()

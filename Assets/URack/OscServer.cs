@@ -11,28 +11,66 @@ namespace Eidetic.URack
 {
     public class OscServer : MonoBehaviour
     {
-        public int ListenPort = 54321;
+
+        public const int ListenPort = 54321;
+        public const int SendPort = 54320;
+
+        public static OscServer Instance;
+        public static void Send<T>(string address, T value) => Instance.SendQueue.Enqueue((address, typeof(T), value));
+
+
         public bool LogIncoming = false;
 
+        // receiving
         UdpClient UdpClient;
         IPEndPoint EndPoint;
         Osc.Parser Parser = new Osc.Parser();
 
-        Dictionary<string, TargetProperty> Targets = new Dictionary<string, TargetProperty>();
+        Dictionary<string, TargetProperty> SceneTargets = new Dictionary<string, TargetProperty>();
+
+        // sending
+        Socket Socket;
+        Osc.Encoder Encoder = new Osc.Encoder();
+
+        Queue<(string, Type, object)> SendQueue = new Queue<(string, Type, object)>();
+
+        Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>()
+        {
+            { IPAddress.Parse("172.22.15.253"), new IPEndPoint(IPAddress.Parse("172.22.15.253"), SendPort) }
+        };
 
         void Start()
         {
+            Instance = this;
             EndPoint = new IPEndPoint(IPAddress.Any, ListenPort);
             UdpClient = new UdpClient(EndPoint);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         }
 
         void Update()
         {
             while (UdpClient.Available > 0)
             {
-                Parser.FeedData(UdpClient.Receive(ref EndPoint));
+                // recieve data and feed to parser
+                var data = UdpClient.Receive(ref EndPoint);
+                Parser.FeedData(data);
+                // if we haven't received from this address before,
+                // add it to the client list
+                if (!Clients.Keys.Contains(EndPoint.Address))
+                {
+                    var sendEndPoint = new IPEndPoint(EndPoint.Address, SendPort);
+                    Clients.Add(EndPoint.Address, sendEndPoint);
+
+                    Encoder.Clear();
+                    Encoder.Append("/Address");
+                    Encoder.Append(",s");
+                    Encoder.Append("i tracked you");
+
+                    Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, Clients.Last().Value);
+                }
             }
 
+            // Route all incoming messages
             while (Parser.MessageCount > 0)
             {
                 var msg = Parser.PopMessage();
@@ -59,23 +97,23 @@ namespace Eidetic.URack
                         // remove all references to the properties in the Target list
                         // so that the osc address doesn't point to destroyed references
                         var moduleAddress = msg.data[0] + "/" + msg.data[1];
-                        var removeTargets = Targets.Keys
+                        var removeTargets = SceneTargets.Keys
                             .Where(key => key.Contains(moduleAddress)).ToList();
-                        foreach(var removeTarget in removeTargets)
-                            Targets.Remove(removeTarget);
+                        foreach (var removeTarget in removeTargets)
+                            SceneTargets.Remove(removeTarget);
                         break;
                     case "Reset":
                         UModule.Remove((int)msg.data[1]);
                         var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
-                        var resetRemoveTargets = Targets.Keys
+                        var resetRemoveTargets = SceneTargets.Keys
                             .Where(key => key.Contains(resetModuleAddress)).ToList();
-                        foreach(var removeTarget in resetRemoveTargets)
-                            Targets.Remove(removeTarget);
+                        foreach (var removeTarget in resetRemoveTargets)
+                            SceneTargets.Remove(removeTarget);
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
                         TargetProperty target;
-                        if (Targets.ContainsKey(msg.path)) target = Targets[msg.path];
+                        if (SceneTargets.ContainsKey(msg.path)) target = SceneTargets[msg.path];
                         else
                         {
                             // if the target property doesn't exist in the cache,
@@ -95,7 +133,7 @@ namespace Eidetic.URack
                             }
                             else target = new TargetProperty(moduleInstance, targetProperty);
 
-                            Targets[msg.path] = target;
+                            SceneTargets[msg.path] = target;
                         }
                         // connecting a port
                         if (address[3] == "Connect")
@@ -139,7 +177,40 @@ namespace Eidetic.URack
                         break;
                 }
             }
+
+            // Send any outgoing messages
+            while (SendQueue.Count > 0)
+            {
+                var item = SendQueue.Dequeue();
+                var address = item.Item1;
+                var type = item.Item2;
+                var value = item.Item3;
+
+                Encoder.Clear();
+                Encoder.Append(address);
+
+                if (type == typeof(float))
+                {
+                    Encoder.Append(",f");
+                    Encoder.Append((float)value);
+                }
+                else if (type == typeof(int))
+                {
+                    Encoder.Append(",i");
+                    Encoder.Append((int)value);
+                }
+                else if (type == typeof(string))
+                {
+                    Encoder.Append(",s");
+                    Encoder.Append((string)value);
+                }
+
+                foreach (var endpoint in Clients.Values)
+                    Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
+
+            }
         }
+
 
         struct TargetProperty
         {
