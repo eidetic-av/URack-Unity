@@ -28,6 +28,7 @@ namespace Eidetic.URack
             moduleInstance.ModuleType = moduleName;
             moduleInstance.InstanceName = instanceName;
             moduleInstance.Id = id;
+            moduleInstance.InstanceAddress = "/" + moduleName + "/" + id;
 
             // Apply patches for automatic input voltage processing
             var moduleType = Type.GetType("Eidetic.URack." + moduleName);
@@ -136,6 +137,7 @@ namespace Eidetic.URack
         public int Id { get; private set; }
         public string ModuleType { get; private set; }
         public string InstanceName { get; private set; }
+        public string InstanceAddress { get; private set; }
 
         List<InputInfo> Inputs = new List<InputInfo>();
         Dictionary<MethodBase, InputInfo> InputsBySetter = new Dictionary<MethodBase, InputInfo>();

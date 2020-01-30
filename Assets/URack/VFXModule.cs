@@ -28,7 +28,8 @@ namespace Eidetic.URack
 
         public virtual void Start()
         {
-            VisualEffect?.Play();
+            if (VisualEffect != null)
+                VisualEffect.Play();
         }
 
         public void Exit()
@@ -42,7 +43,8 @@ namespace Eidetic.URack
             set
             {
                 PointCloudBinder.PointCloud = value;
-                VisualEffect.SetInt("PointCount", value.PointCount);
+                if (VisualEffect != null)
+                    VisualEffect.SetInt("PointCount", value.PointCount);
             }
         }
 

@@ -13,7 +13,7 @@ namespace Eidetic.URack
         {
             if (TestSend != lastTestSend)
             {
-                OscServer.Send<float>("/test/one", TestSend);
+                OscServer.Send<float>(InstanceAddress, TestSend);
                 lastTestSend = TestSend;
             }
         }
