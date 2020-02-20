@@ -62,11 +62,11 @@ namespace Eidetic.URack
         {
             set
             {
-                var cameraDistance = value.Clamp(0, 10);
-                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) > cameraDistance + 0.005f)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, ForwardAxis.transform.position, 0.001f);
-                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) < cameraDistance - 0.005f)
-                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.001f);
+                var cameraDistance = value.Clamp(0.01f, 10);
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) > cameraDistance + 0.01f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, ForwardAxis.transform.position, 0.0005f);
+                while (Vector3.Distance(Camera.transform.position, CameraOrigin.transform.position) < cameraDistance - 0.01f)
+                    Camera.transform.position = Vector3.MoveTowards(Camera.transform.position, BackwardAxis.transform.position, 0.0005f);
             }
         }
         [Input(-5, 5, -180, 180, false, 1, 1)]

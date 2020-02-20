@@ -11,17 +11,17 @@ namespace Eidetic.URack
 
         public bool NewFrame { get; set; }
 
-        [Input] public float MinX { get; set; }
+        [Input(-5, 5, -10, 10)] public float MinX { get; set; }
 
-        [Input] public float MinY { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MinY { get; set; }
 
-        [Input] public float MinZ { get; set; }
+        [Input(-5, 5, -10, 10)] public float MinZ { get; set; }
 
-        [Input] public float MaxX { get; set; }
+        [Input(-5, 5, -10, 10)] public float MaxX { get; set; }
 
-        [Input] public float MaxY { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MaxY { get; set; }
 
-        [Input] public float MaxZ { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MaxZ { get; set; }
 
         [Input] public float TranslationX { get; set; }
 
