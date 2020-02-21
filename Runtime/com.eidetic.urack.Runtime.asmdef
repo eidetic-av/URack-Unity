@@ -1,0 +1,37 @@
+{
+    "name": "com.eidetic.urack.Runtime",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Entities",
+        "Unity.Jobs",
+        "Unity.VisualEffectGraph.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.HighDefinition.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.burst",
+            "expression": "1.2",
+            "define": "VERSION_NEWER_THAN_1_2"
+        },
+        {
+            "name": "com.unity.entities",
+            "expression": "0.5.1",
+            "define": "VERSION_NEWER_THAN_0_5_1"
+        },
+        {
+            "name": "com.unity.render-pipelines.high-definition",
+            "expression": "7.1",
+            "define": "VERSION_NEWER_THAN_7_1"
+        }
+    ],
+    "noEngineReferences": false
+}
