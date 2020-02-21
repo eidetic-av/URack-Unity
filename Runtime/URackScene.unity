@@ -169,7 +169,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &860106485
+--- !u!1001 &742904792
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -179,7 +179,7 @@ PrefabInstance:
     - target: {fileID: 4582262570004601649, guid: 0413742282fc641c1bdb728c1c07a831,
         type: 3}
       propertyPath: m_Name
-      value: OscServer
+      value: URackServer
       objectReference: {fileID: 0}
     - target: {fileID: 4582262570004601651, guid: 0413742282fc641c1bdb728c1c07a831,
         type: 3}
