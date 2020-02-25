@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Eidetic.URack
 {
-    public class Renderer : VFXModule
+    public class Billboard : VFXModule
     {
 
     }

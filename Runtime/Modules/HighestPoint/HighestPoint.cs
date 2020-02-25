@@ -8,7 +8,7 @@ namespace Eidetic.URack
     {
 
         [Input]
-        public override PointCloud PointCloud
+        public override PointCloud PointCloudInput
         {
             set
             {
@@ -18,10 +18,10 @@ namespace Eidetic.URack
                     if (point.Position.z > height) height = point.Position.z;
                 }
                 Osc.Server.Send(InstanceAddress + "/" + "Height", height);
-                PointCloudThru = value;
+                PointCloudOutput = value;
             }
         }
 
-        public PointCloud PointCloudThru { get; set; }
+        public PointCloud PointCloudOutput { get; set; }
     }
 }

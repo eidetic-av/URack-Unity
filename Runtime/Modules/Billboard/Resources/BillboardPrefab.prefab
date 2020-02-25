@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 67670944571093006}
   - component: {fileID: 8893085226958796473}
   m_Layer: 0
-  m_Name: RendererPrefab
+  m_Name: BillboardPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,7 +44,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 3464084425758629604}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fecf8927ea1524c4b8fcf50b111d644d, type: 3}
+  m_Script: {fileID: 11500000, guid: d89860490c6467645bee1a2608add055, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   VisualEffect: {fileID: 8438921472170328165}
@@ -102,7 +102,6 @@ VFXRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0

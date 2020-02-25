@@ -38,7 +38,7 @@ namespace Eidetic.URack
         }
 
         [Input]
-        virtual public PointCloud PointCloud
+        virtual public PointCloud PointCloudInput
         {
             set
             {
@@ -47,40 +47,5 @@ namespace Eidetic.URack
                     VisualEffect.SetInt("PointCount", value.PointCount);
             }
         }
-
-//         public class VFXBlackboardInfo : ScriptableObject
-//         {
-//             public List<String> Properties;
-//         }
-
-// #if UNITY_EDITOR
-//         [UnityEditor.Callbacks.DidReloadScripts]
-//         private static void OnScriptsReloaded()
-//         {
-//             var derivedTypes = System.AppDomain.CurrentDomain
-//                 .GetAllDerivedTypes(MethodBase.GetCurrentMethod().DeclaringType);
-
-//             foreach (var type in derivedTypes)
-//             {
-//                 var scriptFile = System.IO.Directory
-//                     .GetFiles(Application.dataPath, type.Name + ".cs", SearchOption.AllDirectories)
-//                     .FirstOrDefault();
-
-//                 var baseDir = Regex.Split(scriptFile, "Assets/")[1];
-//                 baseDir = Regex.Split(baseDir, type.Name + ".cs")[0];
-//                 var assetPath = "Assets/" + baseDir + type.Name + "BlackboardInfo.asset";
-//                 var blackboardInfo = ScriptableObject.CreateInstance<VFXBlackboardInfo>();
-
-//                 var prefab = Resources.Load<GameObject>(type.Name + "Prefab");
-//                 var visualEffect = prefab.GetComponent<VisualEffect>();
-
-//                 blackboardInfo.Properties = new List<string>() { "oi" };
-
-//                 AssetDatabase.CreateAsset(blackboardInfo, assetPath);
-//                 AssetDatabase.SaveAssets();
-//                 AssetDatabase.Refresh();
-//             }
-//         }
-// #endif
     }
 }

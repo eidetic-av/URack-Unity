@@ -13,7 +13,7 @@ namespace Eidetic.URack
         const int JobBatchSize = 1000;
 
         [Input]
-        public override PointCloud PointCloud
+        public override PointCloud PointCloudInput
         {
             set
             {

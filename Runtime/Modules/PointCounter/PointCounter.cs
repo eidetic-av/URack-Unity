@@ -8,17 +8,17 @@ namespace Eidetic.URack
     {
 
         [Input]
-        public override PointCloud PointCloud
+        public override PointCloud PointCloudInput
         {
             set
             {
                 // Map 10000 points per volt
                 var countVolts = value.PointCount / 10000f;
                 Osc.Server.Send(InstanceAddress + "/" + "PointCount", countVolts);
-                PointCloudThru = value;
+                PointCloudOutput = value;
             }
         }
 
-        public PointCloud PointCloudThru { get; set; }
+        public PointCloud PointCloudOutput { get; set; }
     }
 }
