@@ -121,8 +121,8 @@ namespace Eidetic.URack
                 var filteredIndices = new NativeList<int>(Allocator.TempJob);
                 var filterJob = new BuildPointFilterJob()
                 {
-                    min = new Vector3(module.MinX, module.MinY, module.MinZ),
-                    max = new Vector3(module.MaxX, module.MaxY, module.MaxZ),
+                    min = new Vector3(module.MinLopX, module.MinLopY, module.MinLopZ),
+                    max = new Vector3(module.MaxLopX, module.MaxLopY, module.MaxLopZ),
                     points = transferJob.points
                 };
                 filterJob.ScheduleAppend(filteredIndices, pointCount, JobBatchSize).Complete();
@@ -142,8 +142,8 @@ namespace Eidetic.URack
                 var transformJob = new TransformPointsJob()
                 {
                     rotation = new Vector3(module.RotationX, module.RotationY, module.RotationZ),
-                    translation = new Vector3(module.TranslationX, module.TranslationY, module.TranslationZ),
-                    scale = new Vector3(module.ScaleX, module.ScaleY, module.ScaleZ),
+                    translation = new Vector3(module.LocationX, module.LocationY, module.LocationZ),
+                    scale = new Vector3(module.ScalingX, module.ScalingY, module.ScalingZ),
                     points = buildArrayJob.filteredPoints
                 };
                 transformJob.Schedule(buildArrayJob.filteredPoints.Length, JobBatchSize).Complete();

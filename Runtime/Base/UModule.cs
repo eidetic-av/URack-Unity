@@ -139,7 +139,7 @@ namespace Eidetic.URack
         public string InstanceName { get; private set; }
         public string InstanceAddress { get; private set; }
 
-        List<InputInfo> Inputs = new List<InputInfo>();
+        public List<InputInfo> Inputs { get; private set; } = new List<InputInfo>();
         Dictionary<MethodBase, InputInfo> InputsBySetter = new Dictionary<MethodBase, InputInfo>();
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
 
@@ -153,7 +153,7 @@ namespace Eidetic.URack
 
         public void Update() { /* need this update method for patching in case the child doesn't call it */ }
 
-        struct InputInfo
+        public struct InputInfo
         {
             public PropertyInfo Property;
             public InputAttribute Attribute;

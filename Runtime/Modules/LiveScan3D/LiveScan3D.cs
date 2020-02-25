@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
 namespace Eidetic.URack
 {
     public class LiveScan3D : UModule
@@ -11,23 +12,23 @@ namespace Eidetic.URack
 
         public bool NewFrame { get; set; }
 
-        [Input(-5, 5, -10, 10)] public float MinX { get; set; }
+        [Input(-5, 5, -10, 10)] public float MinLopX { get; set; }
 
-        [Input(-5, 5, -10, 10)]  public float MinY { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MinLopY { get; set; }
 
-        [Input(-5, 5, -10, 10)] public float MinZ { get; set; }
+        [Input(-5, 5, -10, 10)] public float MinLopZ { get; set; }
 
-        [Input(-5, 5, -10, 10)] public float MaxX { get; set; }
+        [Input(-5, 5, -10, 10)] public float MaxLopX { get; set; }
 
-        [Input(-5, 5, -10, 10)]  public float MaxY { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MaxLopY { get; set; }
 
-        [Input(-5, 5, -10, 10)]  public float MaxZ { get; set; }
+        [Input(-5, 5, -10, 10)]  public float MaxLopZ { get; set; }
 
-        [Input] public float TranslationX { get; set; }
+        [Input] public float LocationX { get; set; }
 
-        [Input] public float TranslationY { get; set; }
+        [Input] public float LocationY { get; set; }
 
-        [Input] public float TranslationZ { get; set; }
+        [Input] public float LocationZ { get; set; }
 
         [Input(-5, 5, -180, 180)] public float RotationX { get; set; }
 
@@ -35,11 +36,11 @@ namespace Eidetic.URack
 
         [Input(-5, 5, -180, 180)] public float RotationZ { get; set; }
 
-        [Input] public float ScaleX { get; set; }
+        [Input] public float ScalingX { get; set; }
 
-        [Input] public float ScaleY { get; set; }
+        [Input] public float ScalingY { get; set; }
 
-        [Input] public float ScaleZ { get; set; }
+        [Input] public float ScalingZ { get; set; }
 
         LiveScanReceiver Receiver;
 

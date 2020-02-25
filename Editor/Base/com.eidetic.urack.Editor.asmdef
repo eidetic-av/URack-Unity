@@ -1,0 +1,17 @@
+{
+    "name": "com.eidetic.urack.Editor",
+    "references": [
+        "GUID:b1a4a873deb83004bb7ab9eba011d80e"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
