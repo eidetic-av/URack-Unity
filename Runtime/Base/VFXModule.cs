@@ -7,9 +7,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.VFX;
 using UnityEngine.VFX.Utility;
-// #if UNITY_EDITOR
-// using UnityEditor;
-// #endif
 
 namespace Eidetic.URack
 {
