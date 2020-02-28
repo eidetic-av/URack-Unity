@@ -19,4 +19,4 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 #### Additional permission under GNU GPL version 3 section 7
 
-If you modify this Program, or any covered work, by linking or combining it with the Unity Rendering Engine (or a modified version of that library), containing parts covered by the terms of [Unity Companion License](https://unity3d.com/legal/licenses/Unity_Companion_License), the licensors of this Program grant you additional permission to convey the resulting work.
+If you modify this Program, or any covered work, by linking or combining it with the Unity Rendering Engine (or a modified version of that library), containing parts covered by the terms of the [Unity Companion License](https://unity3d.com/legal/licenses/Unity_Companion_License), the licensors of this Program grant you additional permission to convey the resulting work.
