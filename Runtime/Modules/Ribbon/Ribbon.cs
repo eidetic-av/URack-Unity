@@ -1,11 +1,11 @@
-using UnityEngine;
-using Unity.Mathematics;
-using UnityEngine.Rendering.HighDefinition;
-using System.Runtime.InteropServices;
+using Eidetic.ColorExtensions;
+using Eidetic.URack;
 using System.Collections.Generic;
 using System.Linq;
-using Eidetic.URack;
-using Eidetic.ColorExtensions;
+using System.Runtime.InteropServices;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 
 public class Ribbon : UModule
 {
@@ -23,33 +23,30 @@ public class Ribbon : UModule
     [Input] public float Y { set => HeadPosition.y = value; }
     [Input] public float Z { set => HeadPosition.z = value; }
 
-    [Input] public float OriginX { set => transform.position = new Vector3(value, transform.position.y, transform.position.z); }
-    [Input] public float OriginY { set => transform.position = new Vector3(transform.position.x, value, transform.position.z); }
-    [Input] public float OriginZ { set => transform.position = new Vector3(transform.position.x, transform.position.y, value); }
+    [Input] public float OriginX { set => transform.position =
+            new Vector3(value, transform.position.y, transform.position.z); }
+    [Input] public float OriginY { set => transform.position =
+            new Vector3(transform.position.x, value, transform.position.z); }
+    [Input] public float OriginZ { set => transform.position =
+            new Vector3(transform.position.x, transform.position.y, value); }
 
-    [Input]
-    public float RotateX
-    {
-        set
-        {
+    [Input] public float RotateX {
+        set {
             var euler = transform.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(euler.x, euler.y, value.Map(-5, 5, -180, 180));
         }
     }
-    [Input]
-    public float RotateY
-    {
-        set
-        {
+    [Input] public float RotateY {
+        set {
             var euler = transform.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(euler.x, value.Map(-5, 5, -180, 180), euler.z);
         }
     }
 
     Vector3 HeadHSV = new Vector3(0f, 1f, 1f);
-    [Input] public float Hue { set => HeadHSV.x = value / 10; }
-    [Input] public float Saturation { set => HeadHSV.y = value / 10; }
-    [Input] public float Brightness { set => HeadHSV.z = value / 10; }
+    [Input] public float Hue { set => HeadHSV.x = Mathf.Clamp(value, 0, 10) / 10f; }
+    [Input] public float Saturation { set => HeadHSV.y = Mathf.Clamp(value, 0, 10) / 10f; }
+    [Input] public float Brightness { set => HeadHSV.z = Mathf.Clamp(value, 0, 10) / 10f; }
 
     [Input]
     public float Glow

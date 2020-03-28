@@ -1,0 +1,207 @@
+#+TITLE: Ribbon: Trailing Particle Generator Module
+
+* Inputs
+** Tip Position
+The 'Tip Position' inputs are used to set the 3D starting point of the Ribbon.
+
+The entire structure follows this point in space, relative to the [[Origin
+Position]] and [[Origin Rotation]].
+
+/At least one of these values must be in motion for any trail to be rendered!/
+
+#+NAME: tip-position-inputs
+#+BEGIN_SRC csharp
+Vector3 HeadPosition = new Vector3(0, 0, 0);
+[Input] public float X { set => HeadPosition.x = value; }
+[Input] public float Y { set => HeadPosition.y = value; }
+[Input] public float Z { set => HeadPosition.z = value; }
+#+END_SRC
+** Origin Position
+The 'Origin Position' inputs are used to set the position of the Module's output
+visualisation in 3D space.
+
+Unlike the 'Tip Position' inputs, these inputs do not cause the Ribbon to draw a
+trail when they are in motion - instead, these inputs are more like an offset of
+the simulation within the virtual world.
+
+When updated, each input sets the respective Vector3 value of the instance's
+transform.position.
+
+#+NAME: origin-position-inputs
+#+BEGIN_SRC csharp
+[Input] public float OriginX { set => transform.position =
+        new Vector3(value, transform.position.y, transform.position.z); }
+[Input] public float OriginY { set => transform.position =
+        new Vector3(transform.position.x, value, transform.position.z); }
+[Input] public float OriginZ { set => transform.position =
+        new Vector3(transform.position.x, transform.position.y, value); }
+#+END_SRC
+** Origin Rotation
+The 'Origin Rotation' inputs are used to set the rotation of the Module's output
+visualisation in 3D space.
+
+This transformation is relative to the [[Origin Position]].
+
+When one of these inputs is set, the instance's transform.rotation quaternion is
+updated.
+
+These properties map a bi-polar input (±5v) to a rotation range of 360 degrees.
+
+#+NAME: origin-rotation-inputs
+#+BEGIN_SRC csharp
+[Input] public float RotateX {
+    set {
+        var euler = transform.rotation.eulerAngles;
+        transform.rotation = Quaternion.Euler(euler.x, euler.y, value.Map(-5, 5, -180, 180));
+    }
+}
+[Input] public float RotateY {
+    set {
+        var euler = transform.rotation.eulerAngles;
+        transform.rotation = Quaternion.Euler(euler.x, value.Map(-5, 5, -180, 180), euler.z);
+    }
+}
+#+END_SRC
+** Tip Colour
+
+These properties expect a uni-directional input (0-10v), clamping any voltage
+above or below this range to prevent invalid colour values.
+
+Updating any of these inputs sets a backing field only. The actual evaluation of
+the gradient used to colour the the output trails occurs during the Update loop.
+
+#+NAME: tip-colour-inputs
+#+BEGIN_SRC csharp
+Vector3 HeadHSV = new Vector3(0f, 1f, 1f);
+[Input] public float Hue { set => HeadHSV.x = Mathf.Clamp(value, 0, 10) / 10f; }
+[Input] public float Saturation { set => HeadHSV.y = Mathf.Clamp(value, 0, 10) / 10f; }
+[Input] public float Brightness { set => HeadHSV.z = Mathf.Clamp(value, 0, 10) / 10f; }
+#+END_SRC
+
+* Usings
+#+NAME: usings
+#+BEGIN_SRC csharp
+using Eidetic.ColorExtensions;
+using Eidetic.URack;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
+#+END_SRC
+
+* Complete Source
+#+BEGIN_SRC csharp :noweb yes :tangle Ribbon.cs
+<<usings>>
+
+public class Ribbon : UModule
+{
+    static readonly int SegmentCount = 20;
+    static readonly int VerticesPerSegment = 5;
+    static readonly float WidthMultiplier = 0.01f;
+
+    LineRenderer lineRenderer;
+    LineRenderer LineRenderer => lineRenderer ?? (lineRenderer = GetComponentsInChildren<LineRenderer>().First());
+    List<Vector3> VertexPositions = new List<Vector3>();
+    ColorLine VertexColors = new ColorLine();
+
+    <<tip-position-inputs>>
+
+    <<origin-position-inputs>>
+
+    <<origin-rotation-inputs>>
+
+    <<tip-colour-inputs>>
+
+    [Input]
+    public float Glow
+    {
+        set => LineRenderer.material.SetFloat("_EmissiveExposureWeight", value.Map(0, 10, 1, 0.85f));
+    }
+
+    float width = 1f;
+    [Input(0, 10, 0, 20, true, 2)]
+    public float Width
+    {
+        set
+        {
+            width = value * 10;
+            LineRenderer.widthCurve = new AnimationCurve(
+                new Keyframe(0, width * WidthMultiplier * tail),
+                new Keyframe(1, width * WidthMultiplier));
+        }
+    }
+    float tail = 1f;
+    [Input]
+    public float Tail
+    {
+        set
+        {
+            tail = 1 + (value / 5);
+            LineRenderer.widthCurve = new AnimationCurve(
+                new Keyframe(0, width * WidthMultiplier * tail),
+                new Keyframe(1, width * WidthMultiplier));
+        }
+    }
+
+    int PointCount = 0;
+    [Input]
+    public float Length
+    {
+        set
+        {
+            if (value < 0) return;
+            PointCount = VerticesPerSegment * Mathf.RoundToInt((SegmentCount + 1) * (value / 2));
+            while (VertexPositions.Count < PointCount)
+            {
+                VertexPositions.Insert(0, VertexPositions.Count > 0 ? VertexPositions[0] : HeadPosition);
+                VertexColors.Insert(0, VertexColors.Count > 0 ? VertexColors[0] : HeadHSV.AsHSVColor());
+            }
+
+            while (VertexPositions.Count > PointCount)
+            {
+                VertexPositions.RemoveAt(0);
+                VertexColors.RemoveAt(0);
+            }
+
+            LineRenderer.positionCount = PointCount;
+        }
+    }
+
+    public void Update()
+    {
+        if (PointCount == 0) return;
+
+        // Advance vertices
+        for (var i = 0; i < PointCount - 1; i++)
+        {
+            VertexPositions[i] = VertexPositions[i + 1];
+            VertexColors[i] = VertexColors[i + 1];
+        }
+
+        // Set "head" position and color
+        VertexPositions[PointCount - 1] = HeadPosition;
+        VertexColors[PointCount - 1] = HeadHSV.AsHSVColor();
+
+        // Transfer positions to the LineRenderer
+        LineRenderer.SetPositions(VertexPositions.ToArray());
+
+        // Transfer colors to the material
+        var colorTexture = VertexColors.ToTexture();
+        LineRenderer.material.SetTexture("_BaseColorMap", colorTexture);
+        LineRenderer.material.SetTexture("_EmissiveColorMap", colorTexture);
+    }
+}
+
+#+END_SRC
+
+** View source on Github
+#+NAME: View source on Github
+#+BEGIN_SRC sh :exports results :var filename=(buffer-file-name)
+srcfilename=$(echo $(orgfile=${filename:42} && echo ${orgfile::-4}".cs"))
+echo "https://github.com/eidetic-av/URack-Unity/blob/master/"$srcfilename
+#+END_SRC
+
+#+RESULTS: View source on Github
+: https://github.com/eidetic-av/URack-Unity/blob/master/Runtime/Modules/Ribbon/Ribbon.cs
