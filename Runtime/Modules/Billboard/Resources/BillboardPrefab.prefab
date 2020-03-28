@@ -81,7 +81,13 @@ VisualEffect:
     m_Gradient:
       m_Array: []
     m_NamedObject:
-      m_Array: []
+      m_Array:
+      - m_Value: {fileID: 0}
+        m_Name: Positions
+        m_Overridden: 1
+      - m_Value: {fileID: 0}
+        m_Name: Colors
+        m_Overridden: 1
     m_Bool:
       m_Array: []
 --- !u!73398921 &7467263158879654989
