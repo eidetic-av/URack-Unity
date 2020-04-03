@@ -1,3 +1,68 @@
+#+TITLE: UModule — Base functionality for all URack modules
+* Overview
+* The Code
+:PROPERTIES:
+:header-args:csharp: :noweb yes
+:END:
+
+** Patching
+The URack Unity API is constructed in a way that makes it easy to create input
+setters for script properties, and have them respond to updates on their
+corresponding OSC address.
+
+It does this by patching each derived UModule with some method prefixes
+
+I chose this instead of using virtual methods in this base class, because it:
+    1. strips out some boiler-plate code that would be necessary when simply
+       providing virtual methods to override.
+    2. maintains compatibility with existing scripts Unity developers may have
+       in their arsenal.
+    3. hides the UModule-specific behaviour from the derived class, because
+       these functions simply don't need to be visible to whoever is
+       implementing a new module.
+
+If virtual methods were used to implement UModule-specific behaviour…
+#+BEGIN_SRC csharp
+public virtual void Update() { … }
+#+END_SRC
+
+…then the overwritten method would need to call the base like so:
+#+BEGIN_SRC csharp
+public override void Update() { base.Update(); … }
+#+END_SRC
+
+By patching the file with our UModule.Update as a prefix to the derived class's
+own Update method, both methods get called by the Unity Engine, and the
+implementer needs no knowledge of this parent method, so can implement their own
+Update like any Unity developer is used to:
+#+BEGIN_SRC csharp
+public void Update() { … }
+#+END_SRC
+
+To do this, we first instantiate the Patcher:
+#+BEGIN_SRC csharp :noweb-ref instantiate-patcher
+static HarmonyInstance Patcher;
+static UModule() => Patcher = HarmonyInstance.Create("Eidetic.URack.UModule");
+#+END_SRC
+
+#+BEGIN_SRC csharp :noweb-ref patch-update
+// and apply the prefix for the module's Update method
+// to perform processing (mapping + smoothing) without the module
+// needing to call any ValueUpdate method manually
+var updateMethod = moduleType.GetMethod("Update");
+
+var valueUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ValueUpdate"));
+Patcher.Patch(updateMethod, valueUpdate);
+ // do the same for ConnectionUpdate
+ var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
+ Patcher.Patch(updateMethod, connectionUpdate);
+#+END_SRC
+
+*** TODO It doesn't make sense to introduce 'moduleType' variable here
+Maybe make it a property?
+
+** Output source
+#+BEGIN_SRC csharp :tangle UModule.cs
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -10,8 +75,7 @@ namespace Eidetic.URack
     public abstract partial class UModule : MonoBehaviour
     {
         public static Dictionary<int, UModule> Instances { get; private set; } = new Dictionary<int, UModule>();
-        static HarmonyInstance Patcher;
-        static UModule() => Patcher = HarmonyInstance.Create("Eidetic.URack.UModule");
+        <<instantiate-patcher>>
         static List<Type> PatchedTypes = new List<Type>();
 
         public static UModule Create(string moduleName, int id)
@@ -53,16 +117,7 @@ namespace Eidetic.URack
 
             if (PatchedTypes.Contains(moduleType)) return moduleInstance;
 
-            // and apply the prefix for the module's Update method
-            // to perform processing (mapping + smoothing) without the module
-            // needing to call any ValueUpdate method manually
-            var updateMethod = moduleType.GetMethod("Update");
-            
-            var valueUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ValueUpdate"));
-            Patcher.Patch(updateMethod, valueUpdate);
-             // do the same for ConnectionUpdate
-             var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
-             Patcher.Patch(updateMethod, connectionUpdate);
+            <<patch-update>>
 
             PatchedTypes.Add(moduleType);
 
@@ -180,3 +235,4 @@ namespace Eidetic.URack
         }
     }
 }
+#+END_SRC

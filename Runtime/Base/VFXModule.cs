@@ -14,7 +14,7 @@ namespace Eidetic.URack
     {
         public virtual VisualEffectAsset TemplateAsset { get; set; }
 
-        [SerializeField] VisualEffect VisualEffect;
+        public VisualEffect VisualEffect;
 
         VFXPropertyBinder binder;
         internal VFXPropertyBinder Binder => binder ?? (binder = VisualEffect.gameObject.GetComponent<VFXPropertyBinder>());

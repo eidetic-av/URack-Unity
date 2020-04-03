@@ -1,0 +1,529 @@
+#+TITLE: GlowWorm Module
+
+* Overview
+The 'GlowWorm' module utilises the Unity engine's [[https://docs.unity3d.com/Manual/class-LineRenderer.html]['Line Renderer' component]] to
+draw smooth, colourful, 'neon'-esque lines in 3D space.
+
+** Achieving high-resolution colour gradients
+The 'GlowWorm' module is mostly a straightforward implementation Unity's Line
+Renderer. The exception to this is the method used to produce its colour.
+
+My desire was to use one colour per vertex in order to create a smooth gradient,
+but the Line Renderer uses the Unity engine's [[https://docs.unity3d.com/ScriptReference/Gradient.html][Gradient]] class to set it's colour,
+which is unfortunately limited to eight colour keys. There may be tens or even
+hundreds of vertices used to draw a ribbon with a smooth shape (depending on its
+length), and eight steps is no where near the resolution needed to produce a
+colour gradient that updates accurately at a fast enough rate.
+
+To overcome this limitation of the Line Renderer, the custom 'ColorLine' class
+was created, which serves as a replacement for Unity's Gradient that can hold an
+arbitrary amount of colours. In order to apply the gradient, this implementation
+bypasses the Line Renderer's 'colorGradient' field, and instead directly sets
+the texture that is used in the ribbon material's shader. The ColorLine class
+defines the 'ToTexture' method, which dynamically generates a 1x256 pixel
+bitmap by sampling the stored gradient into each pixel.
+
+*** TODO Reference the source for the ColorLine class in this doc
+
+* Inputs
+*** Tip Position
+The 'Tip Position' inputs are used to set the 3D starting point of the ribbon.
+
+The entire structure follows this point in space, relative to the [[Origin
+Position]] and [[Origin Rotation]].
+
+/At least one of these values must be in motion for any trail to be rendered!/
+
+#+BEGIN_SRC csharp :noweb-ref inputs
+Vector3 TipPosition = new Vector3(0, 0, 0);
+[Input(-5f, 5f, -1.5f, 1.5f)] public float TipX { set => TipPosition.x = value; }
+[Input(-5f, 5f, -1.5f, 1.5f)] public float TipY { set => TipPosition.y = value; }
+[Input(-5f, 5f, -1.5f, 1.5f)] public float TipZ { set => TipPosition.z = value; }
+#+END_SRC
+
+#+BEGIN_SRC cpp :noweb-ref config-updates
+configBiUpdate("TipX", TIP_X_PARAM, TIP_X_INPUT, TIP_X_ATTEN_PARAM, 0.f);
+configBiUpdate("TipY", TIP_Y_PARAM, TIP_Y_INPUT, TIP_Y_ATTEN_PARAM, 0.f);
+configBiUpdate("TipZ", TIP_Z_PARAM, TIP_Z_INPUT, TIP_Z_ATTEN_PARAM, 0.f);
+#+END_SRC
+
+#+BEGIN_SRC cpp :noweb-ref lay-out-widget
+addParam(createParamCentered<Davies1900hWhiteKnob>(
+             mm2px(Vec(45.566, 35.463)), module, Ribbon::TIP_X_PARAM));
+addParam(createParamCentered<Davies1900hWhiteKnob>(
+             mm2px(Vec(69.274, 35.463)), module, Ribbon::TIP_Y_PARAM));
+addParam(createParamCentered<Davies1900hWhiteKnob>(
+             mm2px(Vec(92.918, 35.463)), module, Ribbon::TIP_Z_PARAM));
+addParam(createParamCentered<TrimpotGray>(
+             mm2px(Vec(39.707, 56.423)), module, Ribbon::TIP_X_ATTEN_PARAM));
+addParam(createParamCentered<TrimpotGray>(
+             mm2px(Vec(63.416, 56.423)), module, Ribbon::TIP_Y_ATTEN_PARAM));
+addParam(createParamCentered<TrimpotGray>(
+             mm2px(Vec(87.06, 56.423)), module, Ribbon::TIP_Z_ATTEN_PARAM));
+addInput(createInputCentered<PJ301MPort>(
+             mm2px(Vec(50.396, 56.423)), module, Ribbon::TIP_X_INPUT));
+addInput(createInputCentered<PJ301MPort>(
+             mm2px(Vec(74.105, 56.423)), module, Ribbon::TIP_Y_INPUT));
+addInput(createInputCentered<PJ301MPort>(
+             mm2px(Vec(97.748, 56.423)), module, Ribbon::TIP_Z_INPUT));
+#+END_SRC
+
+#+BEGIN_SRC cpp :noweb-ref param-ids
+TIP_X_PARAM,
+TIP_X_ATTEN_PARAM,
+TIP_Y_PARAM,
+TIP_Y_ATTEN_PARAM,
+TIP_Z_PARAM,
+TIP_Z_ATTEN_PARAM,
+#+END_SRC
+
+#+BEGIN_SRC cpp :noweb-ref input-ids
+TIP_X_INPUT,
+TIP_Y_INPUT,
+TIP_Z_INPUT,
+#+END_SRC
+
+*** Origin Position
+The 'Origin Position' inputs are used to set the position of the Module's output
+visualisation in 3D space.
+
+Unlike the 'Tip Position' inputs, these inputs do not cause the ribbon to draw a
+trail when they are in motion - instead, these inputs are more like an offset of
+the simulation within the virtual world.
+
+When updated, each input sets the respective Vector3 value of the instance's
+transform.position.
+
+#+BEGIN_SRC csharp :noweb-ref origin-position-inputs
+[Input] public float OriginX { set => transform.position =
+        new Vector3(value, transform.position.y, transform.position.z); }
+[Input] public float OriginY { set => transform.position =
+        new Vector3(transform.position.x, value, transform.position.z); }
+[Input] public float OriginZ { set => transform.position =
+        new Vector3(transform.position.x, transform.position.y, value); }
+#+END_SRC
+
+*** Origin Rotation
+The 'Origin Rotation' inputs are used to set the rotation of the Module's output
+visualisation in 3D space.
+
+This transformation is relative to the [[Origin Position]].
+
+When one of these inputs is set, the instance's transform.rotation quaternion is
+updated.
+
+These properties map a bi-polar input (±5v) to a rotation range of 360 degrees.
+
+#+BEGIN_SRC csharp :noweb-ref origin-rotation-inputs
+[Input] public float RotateX {
+    set {
+        var euler = transform.rotation.eulerAngles;
+        transform.rotation = Quaternion.Euler(euler.x, euler.y, value.Map(-5, 5, -180, 180));
+    }
+}
+[Input] public float RotateY {
+    set {
+        var euler = transform.rotation.eulerAngles;
+        transform.rotation = Quaternion.Euler(euler.x, value.Map(-5, 5, -180, 180), euler.z);
+    }
+}
+#+END_SRC
+
+*** Tip Colour
+Three inputs — 'Hue', 'Saturation' and 'Brightness' — are used to set the colour
+of the ribbon. Updating these inputs sets the ribbon's colour at its 'tip' only,
+not over its entire length. This means that motion applied to these inputs
+results in an animated gradient of colour along the length of the ribbon.
+
+These properties expect a uni-directional input (0-10v), clamping any voltage
+above or below this range to prevent invalid colour values.
+
+Updating any of these inputs sets a backing field only. The actual evaluation of
+the gradient used to colour the the output trails occurs during the [[Evaluation][Update loop]].
+
+#+BEGIN_SRC csharp :noweb-ref tip-colour-inputs
+Vector3 HeadHSV = new Vector3(0f, 1f, 1f);
+[Input] public float Hue { set => HeadHSV.x = Mathf.Clamp(value, 0, 10) / 10f; }
+[Input] public float Saturation { set => HeadHSV.y = Mathf.Clamp(value, 0, 10) / 10f; }
+[Input] public float Brightness { set => HeadHSV.z = Mathf.Clamp(value, 0, 10) / 10f; }
+#+END_SRC
+
+*** Glow
+The 'Glow' input sets the intensity of the 'neon'-like lighting effect that
+eminates from the ribbon.
+
+It uses the material's 'Emissive' properties to produce this glow, which are
+included in the standard HDRP lit material shader.
+
+When it is set, this input updates the overall exposure of the light that is
+emitted by the shader.
+
+#+BEGIN_SRC csharp :noweb-ref glow-input
+[Input] public float Glow { set =>
+        LineRenderer.material.SetFloat("_EmissiveExposureWeight", value.Map(0, 10, 1, 0.85f)); }
+#+END_SRC
+
+**** TODO Fix the ribbon 'Glow' Input (no longer affecting the exposure)
+*** Length
+This input sets the length of each ribbon, controlling how many 3D points are
+used to compute each line by updating the private 'PointCount' field.
+
+/This value must be greater than zero for the visualisation to appear!/
+
+The evaluation of 'PointCount' relies on two [[Constants][compile-time constants]] —
+'SegmentCount' and 'VerticesPerSegment' — which govern the performance of the
+visualisation.
+
+It expects a uni-directional input (0-10v) and clamps any voltage not within
+this range.
+
+When the 'Length' input is set, the VertexPositions and VertexColors collections
+are updated to reflect the new 'PointCount'. If this input is increased, the
+oldest point is duplicated into these collections until their size is equal to
+the new 'PointCount'. If there are no existing points to duplicate — due to a
+prior zero value — new points are generated at the [[Tip Position]], in the [[Tip
+Colour]]. Conversely, if the 'Length' input is decreased, the oldest point on the
+ribbon is removed until the size of the Vertex collections are equal to the new
+'PointCount'.
+
+#+BEGIN_SRC csharp :noweb-ref length-input
+int PointCount = 0;
+[Input]
+public float Length {
+    set {
+        var lengthValue = Mathf.Clamp(value, 0, 10f) / 2f;
+        PointCount = VerticesPerSegment * Mathf.RoundToInt((SegmentCount + 1) * lengthValue);
+        while (VertexPositions.Count < PointCount) {
+            VertexPositions.Insert(0, VertexPositions.Count > 0 ? VertexPositions[0] : TipPosition);
+            VertexColors.Insert(0, VertexColors.Count > 0 ? VertexColors[0] : HeadHSV.AsHSVColor());
+        }
+        while (VertexPositions.Count > PointCount) {
+            VertexPositions.RemoveAt(0);
+            VertexColors.RemoveAt(0);
+        }
+    }
+}
+#+END_SRC
+
+*** Width
+The 'Width' input sets the thickness of the ribbon the visualisation.
+
+It expects a uni-directional input (0-10v), clamps any voltages outside of this
+range, and behaves exponentially with a power of 2.
+
+/Setting this value to zero will result in no visualisation!/
+
+On updating this input, the 'width' backing field is set, and a new gradient
+defining the width of the ribbon over its length is calculated using this
+and the backing field for the [[Tail]] input.
+
+The overall thickness of this gradient is scaled by the 'WidthMultiplier'
+[[Constants][compile-time constant]].
+
+#+BEGIN_SRC csharp :noweb-ref width-input
+float width = 1f;
+[Input(0, 10, 0, 20, true, 2)] public float Width {
+    set {
+        width = value * 10;
+        LineRenderer.widthCurve = new AnimationCurve(
+            new Keyframe(0, width * WidthMultiplier * tail),
+            new Keyframe(1, width * WidthMultiplier));
+    }
+}
+#+END_SRC
+
+*** Tail
+The 'Tail' input controls the gradient that determines the ribbon's thickness
+over its length.
+
+It expects a bi-directional input (±5v).
+
+Setting the 'Tail' input to a positive value makes the ribbon's thickness
+increase over its length, resulting in a tail fatter than the tip. Setting this
+to a negative value makes the ribbon's thickness decrease over its length,
+resulting in a tail that thins out.
+
+Like the [[Width]] input, it recalculates the ribbon's width gradient when it is
+updated, and relies on the 'WidthMultiplier' [[Constants][compile-time constant]].
+
+#+BEGIN_SRC csharp :noweb-ref tail-input
+float tail = 1f;
+[Input] public float Tail {
+    set {
+        tail = 1 + (value / 5f);
+        LineRenderer.widthCurve = new AnimationCurve(
+            new Keyframe(0, width * WidthMultiplier * tail),
+            new Keyframe(1, width * WidthMultiplier));
+    }
+}
+#+END_SRC
+
+*** Cap Type
+Switch between square caps or rounded caps for the ribbon.
+
+A positive voltage produces a rounded cap by increasing the end-cap vertex count
+of the LineRenderer, and a negative voltage generates a flat end for the head of
+the ribbon by not drawing any additional end-cap to the line.
+
+The property setter checks if the input value is greater than zero, and if it is,
+the cap vertex count is set to fifty — enough to create a polygon that passes as
+'round' — and if the input value is zero or less, the number of cap vertices is
+set to zero.
+
+#+BEGIN_SRC csharp :noweb-ref cap-type-input
+[Input] public float CapType { set => LineRenderer.numCapVertices = value > 0 ? 20 : 0; }
+#+END_SRC
+
+*** TODO Alignment
+Setting this to a positive value aligns the ribbon to the camera at all times,
+and a negative value aligns the face of the ribbon to the Z-index.
+
+#+BEGIN_SRC csharp
+[Input] public float
+#+END_SRC
+
+* Evaluation
+#+BEGIN_SRC csharp :noweb-ref update-loop
+public void Update() {
+    if (PointCount == 0) return;
+
+    /* TODO: This vertex advance, and therefore
+       the entire simulation is bound to the framecount.
+       - It should probably advance every (n) miliseconds.*/
+
+    // Advance vertices
+    for (var i = 0; i < PointCount - 1; i++) {
+        VertexPositions[i] = VertexPositions[i + 1];
+        VertexColors[i] = VertexColors[i + 1];
+    }
+
+    // Set tip position and color
+    VertexPositions[PointCount - 1] = TipPosition;
+    VertexColors[PointCount - 1] = HeadHSV.AsHSVColor();
+
+    // Transfer positions to the LineRenderer
+    LineRenderer.positionCount = PointCount;
+    LineRenderer.SetPositions(VertexPositions.ToArray());
+
+    // Transfer colors to the material's texture
+    var colorTexture = VertexColors.ToTexture();
+    LineRenderer.material.SetTexture("_BaseColorMap", colorTexture);
+    LineRenderer.material.SetTexture("_EmissiveColorMap", colorTexture);
+}
+#+END_SRC
+
+* Constants
+
+The 'SegmentCount' and 'VerticesPerSegment' constants determine the resolution
+of the ribbon visualisation, affecting the overall performance of the
+simulation.
+#+BEGIN_SRC csharp :noweb-ref constants
+const int SegmentCount = 20;
+const int VerticesPerSegment = 5;
+#+END_SRC
+
+The 'WidthMultiplier' constant scales the ribbon's overall thickness.
+#+BEGIN_SRC csharp :noweb-ref constants
+const float WidthMultiplier = 0.01f;
+#+END_SRC
+
+* Usings
+#+BEGIN_SRC csharp :noweb-ref usings
+using Eidetic.ColorExtensions;
+using Eidetic.URack;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
+#+END_SRC
+
+* Complete Source
+** Front-end
+#+BEGIN_SRC cpp :noweb yes :main no
+#include "UModule.hpp"
+
+struct GlowWorm : URack::UModule {
+    enum ParamIds {
+        <<param-ids>>
+        LENGTH_PARAM,
+        TAIL_PARAM,
+        WIDTH_PARAM,
+        CAP_TYPE_PARAM,
+        GLOW_PARAM,
+        HUE_PARAM,
+        SATURATION_PARAM,
+        BRIGHTNESS_PARAM,
+        ACTIVE_PARAM,
+        HUE_ATTEN_PARAM,
+        SATURATION_ATTEN_PARAM,
+        BRIGHTNESS_ATTEN_PARAM,
+        NUM_PARAMS
+    };
+    enum InputIds {
+        <<input-ids>>
+        LENGTH_INPUT,
+        ORIGIN_X_INPUT,
+        ORIGIN_Y_INPUT,
+        ORIGIN_Z_INPUT,
+        ROTATE_X_INPUT,
+        ROTATE_Y_INPUT,
+        WIDTH_INPUT,
+        CAP_TYPE_INPUT,
+        GLOW_INPUT,
+        ACTIVE_INPUT,
+        HUE_INPUT,
+        SATURATION_INPUT,
+        BRIGHTNESS_INPUT,
+        NUM_INPUTS
+    };
+    enum OutputIds { NUM_OUTPUTS };
+    enum LightIds { ACTIVE_LIGHT, NUM_LIGHTS };
+
+    GlowWorm() {
+        config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+        <<config-updates>>
+        configBiUpdate("OriginX", -1, ORIGIN_X_INPUT);
+        configBiUpdate("OriginY", -1, ORIGIN_Y_INPUT);
+        configBiUpdate("OriginZ", -1, ORIGIN_Z_INPUT);
+        configBiUpdate("RotateX", -1, ROTATE_X_INPUT);
+        configBiUpdate("RotateY", -1, ROTATE_Y_INPUT);
+        configUpdate("Length", LENGTH_PARAM, LENGTH_INPUT);
+        configBiUpdate("Tail", TAIL_PARAM);
+        configUpdate("Width", WIDTH_PARAM, WIDTH_INPUT);
+        configBiUpdate("CapType", CAP_TYPE_PARAM, CAP_TYPE_INPUT);
+        configBiUpdate("Glow", GLOW_PARAM, GLOW_INPUT);
+        configUpdate("Hue", HUE_PARAM, HUE_INPUT, HUE_ATTEN_PARAM, 0.f);
+        configUpdate("Saturation", SATURATION_PARAM, SATURATION_INPUT,
+                     SATURATION_ATTEN_PARAM, 0.f);
+        configUpdate("Brightness", BRIGHTNESS_PARAM, BRIGHTNESS_INPUT,
+                     BRIGHTNESS_ATTEN_PARAM, 0.f);
+        configActivate(ACTIVE_PARAM, ACTIVE_LIGHT, ACTIVE_INPUT);
+    }
+
+    void update(const ProcessArgs &args) override {}
+};
+
+struct GlowWormWidget : URack::UModuleWidget {
+    GlowWormWidget(GlowWorm *module) {
+        setModule(module);
+        setPanel(APP->window->loadSvg(
+            asset::plugin(pluginInstance, "res/GlowWorm.svg")));
+
+        <<lay-out-widget>>
+
+        addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(
+            createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ScrewBlack>(
+            Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(
+            createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH,
+                                         RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+
+        addParam(createParamCentered<Davies1900hSmallWhiteKnob>(
+            mm2px(Vec(25.269, 36.201)), module, GlowWorm::LENGTH_PARAM));
+        addParam(createParamCentered<Davies1900hSmallWhiteKnob>(
+            mm2px(Vec(9.394, 51.003)), module, GlowWorm::TAIL_PARAM));
+        addParam(createParamCentered<Davies1900hSmallWhiteKnob>(
+            mm2px(Vec(25.269, 62.665)), module, GlowWorm::WIDTH_PARAM));
+        addParam(createParamCentered<Davies1900hSmallWhiteKnob>(
+            mm2px(Vec(119.489, 84.906)), module, GlowWorm::CAP_TYPE_PARAM));
+        addParam(createParamCentered<Davies1900hSmallWhiteKnob>(
+            mm2px(Vec(25.269, 87.832)), module, GlowWorm::GLOW_PARAM));
+        addParam(createParamCentered<Davies1900hWhiteKnob>(
+            mm2px(Vec(45.418, 91.655)), module, GlowWorm::HUE_PARAM));
+        addParam(createParamCentered<Davies1900hWhiteKnob>(
+            mm2px(Vec(69.062, 91.655)), module, GlowWorm::SATURATION_PARAM));
+        addParam(createParamCentered<Davies1900hWhiteKnob>(
+            mm2px(Vec(92.771, 91.655)), module, GlowWorm::BRIGHTNESS_PARAM));
+        addParam(createParamCentered<LEDBezel>(mm2px(Vec(119.489, 108.759)),
+                                               module, GlowWorm::ACTIVE_PARAM));
+        addChild(createLightCentered<LEDBezelLight<RedLight>>(
+            mm2px(Vec(119.489, 108.759)), module, GlowWorm::ACTIVE_LIGHT));
+        addParam(createParamCentered<TrimpotGray>(
+            mm2px(Vec(39.56, 112.615)), module, GlowWorm::HUE_ATTEN_PARAM));
+        addParam(createParamCentered<TrimpotGray>(
+            mm2px(Vec(63.204, 112.615)), module,
+            Ribbon::SATURATION_ATTEN_PARAM));
+        addParam(createParamCentered<TrimpotGray>(
+            mm2px(Vec(86.912, 112.615)), module,
+            Ribbon::BRIGHTNESS_ATTEN_PARAM));
+
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(12.855, 36.201)),
+                                                 module, Ribbon::LENGTH_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(42.488, 66.797)), module, Ribbon::ORIGIN_X_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(55.457, 66.797)), module, Ribbon::ORIGIN_Y_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(68.425, 66.797)), module, Ribbon::ORIGIN_Z_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(81.393, 66.797)), module, Ribbon::ROTATE_X_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(94.361, 66.797)), module, Ribbon::ROTATE_Y_INPUT));
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(12.855, 70.175)),
+                                                 module, Ribbon::WIDTH_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(131.041, 84.906)), module, Ribbon::CAP_TYPE_INPUT));
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(12.855, 87.832)),
+                                                 module, Ribbon::GLOW_INPUT));
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(131.041, 108.759)),
+                                                 module, Ribbon::ACTIVE_INPUT));
+        addInput(createInputCentered<PJ301MPort>(mm2px(Vec(50.248, 112.615)),
+                                                 module, Ribbon::HUE_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(73.892, 112.615)), module, Ribbon::SATURATION_INPUT));
+        addInput(createInputCentered<PJ301MPort>(
+            mm2px(Vec(97.601, 112.615)), module, Ribbon::BRIGHTNESS_INPUT));
+    }
+};
+
+Model *modelRibbon = createModel<Ribbon, RibbonWidget>("Ribbon");
+#+END_SRC
+
+** Back-end
+
+#+BEGIN_SRC csharp :noweb yes :tangle Ribbon.cs
+<<usings>>
+
+public class Ribbon : UModule {
+
+    <<constants>>
+
+    LineRenderer lineRenderer;
+    LineRenderer LineRenderer => lineRenderer ?? (lineRenderer = GetComponentsInChildren<LineRenderer>().First());
+    List<Vector3> VertexPositions = new List<Vector3>();
+    ColorLine VertexColors = new ColorLine();
+
+    <<tip-position-inputs>>
+
+    <<origin-position-inputs>>
+
+    <<origin-rotation-inputs>>
+
+    <<tip-colour-inputs>>
+
+    <<glow-input>>
+
+    <<length-input>>
+
+    <<width-input>>
+
+    <<tail-input>>
+
+    <<cap-type-input>>
+
+    <<update-loop>>
+}
+#+END_SRC
+
+** View source on Github
+#+BEGIN_SRC sh :exports results :var filename=(buffer-file-name)
+srcfilename=$(echo $(orgfile=${filename:42} && echo ${orgfile::-4}".cs"))
+echo "https://github.com/eidetic-av/URack-Unity/blob/master/"$srcfilename
+#+END_SRC
+
+#+RESULTS:
+: https://github.com/eidetic-av/URack-Unity/blob/master/Runtime/Modules/Ribbon/Ribbon.cs
