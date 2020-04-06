@@ -7,15 +7,15 @@ namespace Eidetic.URack
 {
     public class Mirage2x : VFXModule
     {
-        const string Folder = "/Mirage Images";
+        public string Folder = "Mirage Images";
 
-        static List<Texture2D> images;
-        static List<Texture2D> Images {
+        List<Texture2D> images;
+        List<Texture2D> Images {
             get {
                 if (images != null) return images;
                 images = new List<Texture2D>();
-
-                var userFolder = Application.persistentDataPath + Folder;
+                
+                var userFolder = Application.persistentDataPath + "/" + Folder;
                 var pngFiles = System.IO.Directory.GetFiles(userFolder, "*.png");
                 var jpgFiles = System.IO.Directory.GetFiles(userFolder, "*.jpg");
         
@@ -25,7 +25,6 @@ namespace Eidetic.URack
                     if (texture.LoadImage(png))
                         images.Add(texture);
                 }
-
                 return images;
             }
         }

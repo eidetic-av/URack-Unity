@@ -48,6 +48,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   VisualEffect: {fileID: 8438921472170328165}
+  Folder: Sydney
 --- !u!2083052967 &8438921472170328165
 VisualEffect:
   m_ObjectHideFlags: 0
