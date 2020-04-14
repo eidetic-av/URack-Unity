@@ -58,3 +58,7 @@ sysinfo.txt
 crashlytics-build.properties
 
 .DS_Store
+
+# Ignore ply sequences for now
+*.ply
+*.ply.meta
