@@ -7,10 +7,8 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Eidetic.URack.Osc
-{
-    public class Server : MonoBehaviour
-    {
+namespace Eidetic.URack.Osc {
+    public class Server : MonoBehaviour {
 
         public const int ListenPort = 54321;
         public const int SendPort = 54320;
@@ -34,23 +32,19 @@ namespace Eidetic.URack.Osc
 
         Queue<(string, Type, object)> SendQueue = new Queue<(string, Type, object)>();
 
-        Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>()
-        {
+        Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>() {
             { IPAddress.Parse("172.22.15.253"), new IPEndPoint(IPAddress.Parse("172.22.15.253"), SendPort) }
         };
 
-        void Start()
-        {
+        void Start() {
             Instance = this;
             EndPoint = new IPEndPoint(IPAddress.Any, ListenPort);
             UdpClient = new UdpClient(EndPoint);
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         }
 
-        void Update()
-        {
-            while (UdpClient.Available > 0)
-            {
+        void Update() {
+            while (UdpClient.Available > 0) {
                 // recieve data and feed to parser
                 var data = UdpClient.Receive(ref EndPoint);
                 Parser.FeedData(data);
@@ -71,15 +65,12 @@ namespace Eidetic.URack.Osc
             }
 
             // Route all incoming messages
-            while (Parser.MessageCount > 0)
-            {
+            while (Parser.MessageCount > 0) {
                 var msg = Parser.PopMessage();
 
-                if (LogIncoming)
-                {
+                if (LogIncoming) {
                     string dataString = "";
-                    for (int i = 0; i < msg.data.Length; i++)
-                    {
+                    for (int i = 0; i < msg.data.Length; i++) {
                         dataString += msg.data[i].ToString();
                         if (i != msg.data.Length - 1) dataString += ", ";
                     }
@@ -87,8 +78,7 @@ namespace Eidetic.URack.Osc
                 }
 
                 var address = msg.path.Split('/');
-                switch (address[0])
-                {
+                switch (address[0]) {
                     case "Add":
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
@@ -114,8 +104,7 @@ namespace Eidetic.URack.Osc
                     case "Instance":
                         TargetProperty target;
                         if (SceneTargets.ContainsKey(msg.path)) target = SceneTargets[msg.path];
-                        else
-                        {
+                        else {
                             // if the target property doesn't exist in the cache,
                             // create the reference to the property, and if needed
                             // also create an instance of the module we are targetting
@@ -136,27 +125,27 @@ namespace Eidetic.URack.Osc
                             SceneTargets[msg.path] = target;
                         }
                         // connecting a port
-                        if (address[3] == "Connect")
-                        {
+                        if (address[3] == "Connect") {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
                             var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
                             var outputGetter = new UModule.Getter(outputGetMethod);
                             var connectionInstance = UModule.Instances[(int)msg.data[1]];
                             var inputSetMethod = connectionInstance.GetType().GetProperty((string)msg.data[2]).GetSetMethod();
                             var inputSetter = new UModule.Setter(connectionInstance, inputSetMethod);
-                            moduleInstance.Connections.Add(outputGetter, inputSetter);
+                            if (!moduleInstance.Connections.ContainsKey(outputGetter))
+                                moduleInstance.Connections.Add(outputGetter, new List<UModule.Setter>() { inputSetter });
+                            else if (!moduleInstance.Connections[outputGetter].Contains(inputSetter))
+                                moduleInstance.Connections[outputGetter].Add(inputSetter);
                         }
                         // disconnecting a port
-                        else if (address[3] == "Disconnect")
-                        {
+                        else if (address[3] == "Disconnect") {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
                             var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
                             var outputGetter = new UModule.Getter(outputGetMethod);
                             moduleInstance.Connections.Remove(outputGetter);
                         }
                         // setting a VFX Blackboard value
-                        else if (target.IsVFX && target.Property == null)
-                        {
+                        else if (target.IsVFX && target.Property == null) {
                             var visualEffect = target.VisualEffect;
                             if (visualEffect.HasFloat(address[3]))
                                 visualEffect.SetFloat(address[3], (float)msg.data[0]);
@@ -179,8 +168,7 @@ namespace Eidetic.URack.Osc
             }
 
             // Send any outgoing messages
-            while (SendQueue.Count > 0)
-            {
+            while (SendQueue.Count > 0) {
                 var item = SendQueue.Dequeue();
                 var address = "/Instance" + item.Item1;
                 var type = item.Item2;
@@ -189,18 +177,15 @@ namespace Eidetic.URack.Osc
                 Encoder.Clear();
                 Encoder.Append(address);
 
-                if (type == typeof(float))
-                {
+                if (type == typeof(float)) {
                     Encoder.Append(",f");
                     Encoder.Append((float)value);
                 }
-                else if (type == typeof(int))
-                {
+                else if (type == typeof(int)) {
                     Encoder.Append(",i");
                     Encoder.Append((int)value);
                 }
-                else if (type == typeof(string))
-                {
+                else if (type == typeof(string)) {
                     Encoder.Append(",s");
                     Encoder.Append((string)value);
                 }

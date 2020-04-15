@@ -5,17 +5,14 @@ using Harmony;
 using System.Reflection;
 using System.Linq;
 
-namespace Eidetic.URack
-{
-    public abstract partial class UModule : MonoBehaviour
-    {
+namespace Eidetic.URack {
+    public abstract partial class UModule : MonoBehaviour {
         public static Dictionary<int, UModule> Instances { get; private set; } = new Dictionary<int, UModule>();
         static HarmonyInstance Patcher;
         static UModule() => Patcher = HarmonyInstance.Create("Eidetic.URack.UModule");
         static List<Type> PatchedTypes = new List<Type>();
 
-        public static UModule Create(string moduleName, int id)
-        {
+        public static UModule Create(string moduleName, int id) {
             // Load the module's prefab into the scene
             var gameObject = Instantiate(Resources.Load<GameObject>(moduleName + "Prefab"));
             var instanceName = moduleName + "Instance" + id;
@@ -34,8 +31,7 @@ namespace Eidetic.URack
                 .Where(p => p.GetCustomAttribute<InputAttribute>() != null).ToArray();
 
             // for each "Input" apply a prefix to the property's set method
-            foreach (var inputProperty in inputProperties)
-            {
+            foreach (var inputProperty in inputProperties) {
                 if (inputProperty.PropertyType == typeof(PointCloud))
                     continue;
 
@@ -69,15 +65,13 @@ namespace Eidetic.URack
             return moduleInstance;
         }
 
-        public static void Remove(int id)
-        {
+        public static void Remove(int id) {
             Destroy(Instances[id].gameObject);
             Instances.Remove(id);
         }
 
         // patch the setter so that it adds the new voltage to our Voltages array
-        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value)
-        {
+        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value) {
             // get the setter from the InputsBySetter dictionary.
             // if it doesn't exist in there yet then add it
             var input = __instance.InputsBySetter.ContainsKey(__originalMethod)
@@ -88,12 +82,9 @@ namespace Eidetic.URack
             __instance.Voltages[input] = __instance.Voltages[input].Replace(1, value);
         }
 
-        public static void ValueUpdate(UModule __instance)
-        {
-            if (__instance.Active)
-            {
-                foreach (var input in __instance.Inputs)
-                {
+        public static void ValueUpdate(UModule __instance) {
+            if (__instance.Active) {
+                foreach (var input in __instance.Inputs) {
                     if (input.Property.PropertyType == typeof(PointCloud))
                         continue;
 
@@ -115,21 +106,19 @@ namespace Eidetic.URack
                 }
             }
         }
-
-        public static void ConnectionUpdate(UModule __instance)
-        {
-            if (__instance.Active)
-            {
-                foreach (var connection in __instance.Connections)
-                {
-                    var connectionInstance = connection.Value.ModuleInstance;
-                    if (!connectionInstance.Active) continue;
+        public static void ConnectionUpdate(UModule __instance) {
+            if (!__instance.Active) return;
+                Debug.Log(__instance.Connections.Count + " connections");
+            foreach (var connection in __instance.Connections) {
+                    Debug.Log("with " + connection.Value.Count + " targets");
+                foreach (var target in connection.Value) {
+                    var module = target.ModuleInstance;
+                    if (!module.Active) continue;
                     var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
-                    connection.Value.SetMethod.Invoke(connectionInstance, new object[] { value });
+                    target.SetMethod.Invoke(module, new object[] { value });
                 }
             }
         }
-
         public int Id { get; private set; }
         public string ModuleType { get; private set; }
         public string InstanceName { get; private set; }
@@ -139,7 +128,7 @@ namespace Eidetic.URack
         Dictionary<MethodBase, InputInfo> InputsBySetter = new Dictionary<MethodBase, InputInfo>();
         Dictionary<InputInfo, Vector2> Voltages = new Dictionary<InputInfo, Vector2>();
 
-        public Dictionary<Getter, Setter> Connections { get; private set; } = new Dictionary<Getter, Setter>();
+        public Dictionary<Getter, List<Setter>> Connections { get; private set; } = new Dictionary<Getter, List<Setter>>();
 
         public bool Active
         {
