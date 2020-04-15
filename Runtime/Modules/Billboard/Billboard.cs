@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Eidetic.URack
-{
-    public class Billboard : VFXModule
-    {
-
-    }
+namespace Eidetic.URack {
+    public class Billboard : VFXModule {  }
 }

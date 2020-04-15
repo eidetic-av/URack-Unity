@@ -23,25 +23,16 @@ namespace Eidetic.URack
         internal PointCloudBinder PointCloudBinder => pointCloudBinder ??
             (pointCloudBinder = Binder.GetParameterBinders<PointCloudBinder>().Single());
 
-        public virtual void Start()
-        {
-            if (VisualEffect != null)
-                VisualEffect.Play();
-        }
+        public virtual void Start() => VisualEffect?.Play();
 
-        public void Exit()
-        {
-            gameObject?.SetActive(false);
-        }
+        public void Exit() => gameObject?.SetActive(false);
+
 
         [Input]
-        virtual public PointCloud PointCloudInput
-        {
-            set
-            {
+        virtual public PointCloud PointCloudInput {
+            set {
                 PointCloudBinder.PointCloud = value;
-                if (VisualEffect != null)
-                    VisualEffect.SetInt("PointCount", value.PointCount);
+                if (VisualEffect != null) VisualEffect.SetInt("PointCount", value.PointCount);
             }
         }
     }
