@@ -140,9 +140,21 @@ namespace Eidetic.URack.Osc {
                         // disconnecting a port
                         else if (address[3] == "Disconnect") {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
-                            var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
+                            var outputAddress = (string) msg.data[0];
+                            var connectionInstance = UModule.Instances[(int) msg.data[1]];
+                            var connectionAddress = (string) msg.data[2];
+                            var outputGetMethod = moduleInstance.GetType().GetProperty(outputAddress).GetGetMethod();
                             var outputGetter = new UModule.Getter(outputGetMethod);
-                            moduleInstance.Connections.Remove(outputGetter);
+                            var connectionSetMethod = connectionInstance.GetType().GetProperty(connectionAddress).GetSetMethod();
+                            if (moduleInstance.Connections.ContainsKey(outputGetter)) {
+                                var portConnections = moduleInstance.Connections[outputGetter];
+                                for (int i = 0; i < portConnections.Count; i++)
+                                    if (portConnections[i].SetMethod == connectionSetMethod) {
+                                        portConnections.RemoveAt(i);
+                                        break;
+                                    }
+                                if (portConnections.Count == 0) moduleInstance.Connections.Remove(outputGetter);
+                            }
                         }
                         // setting a VFX Blackboard value
                         else if (target.IsVFX && target.Property == null) {

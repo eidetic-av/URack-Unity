@@ -64,9 +64,7 @@ Maybe make it a property?
 #+BEGIN_SRC csharp :noweb-ref connection-update
 public static void ConnectionUpdate(UModule __instance) {
             if (!__instance.Active) return;
-                Debug.Log(__instance.Connections.Count + " connections");
             foreach (var connection in __instance.Connections) {
-                    Debug.Log("with " + connection.Value.Count + " targets");
                 foreach (var target in connection.Value) {
                     var module = target.ModuleInstance;
                     if (!module.Active) continue;

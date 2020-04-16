@@ -107,18 +107,16 @@ namespace Eidetic.URack {
             }
         }
         public static void ConnectionUpdate(UModule __instance) {
-            if (!__instance.Active) return;
-                Debug.Log(__instance.Connections.Count + " connections");
-            foreach (var connection in __instance.Connections) {
-                    Debug.Log("with " + connection.Value.Count + " targets");
-                foreach (var target in connection.Value) {
-                    var module = target.ModuleInstance;
-                    if (!module.Active) continue;
-                    var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
-                    target.SetMethod.Invoke(module, new object[] { value });
+                    if (!__instance.Active) return;
+                    foreach (var connection in __instance.Connections) {
+                        foreach (var target in connection.Value) {
+                            var module = target.ModuleInstance;
+                            if (!module.Active) continue;
+                            var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
+                            target.SetMethod.Invoke(module, new object[] { value });
+                        }
+                    }
                 }
-            }
-        }
         public int Id { get; private set; }
         public string ModuleType { get; private set; }
         public string InstanceName { get; private set; }
