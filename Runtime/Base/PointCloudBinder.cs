@@ -13,7 +13,7 @@ namespace Eidetic.URack
     public class PointCloudBinder : VFXBinderBase
     {
         [SerializeField] int MaxTextureSize = 8192;
-        [SerializeField] int JobBatchSize = 2000;
+        [SerializeField] int JobBatchSize = 1024;
 
         [VFXPropertyBinding("UnityEngine.Texture2D"), FormerlySerializedAs("Positions")]
         public ExposedProperty PositionsProperty = "Positions";
@@ -25,8 +25,7 @@ namespace Eidetic.URack
         public PointCloud PointCloud
         {
             get => pointCloud;
-            set
-            {
+            set {
                 pointCloud = value;
                 UpdateMaps = true;
             }
@@ -36,53 +35,47 @@ namespace Eidetic.URack
         Texture2D ColorMap;
         bool UpdateMaps;
 
-        public override void UpdateBinding(VisualEffect visualEffect)
-        {
+        public override void UpdateBinding(VisualEffect visualEffect) {
             if (!UpdateMaps) return;
 
-            var pointCount = PointCloud.PointCount;
-            if (pointCount == 0) return;
+            int count = PointCloud.PointCount;
+            if (count == 0) return;
 
-            var width = MaxTextureSize;
-            var height = pointCount / MaxTextureSize;
-            if (pointCount > 0 && pointCount < MaxTextureSize)
-            {
-                width = pointCount;
-                height = 1;
+            int width = MaxTextureSize;
+            int height = count / MaxTextureSize;
+            if (count < MaxTextureSize) {
+                width = count;
+                height = Mathf.CeilToInt( count / (float) MaxTextureSize);
             }
 
             if (PositionMap != null) Destroy(PositionMap);
             if (ColorMap != null) Destroy(ColorMap);
 
-            PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
-            {
+            PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
                 name = gameObject.name + "-PositionMap",
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Repeat
             };
 
-            ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
-            {
+            ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
                 name = gameObject.name + "-ColorMap",
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Repeat
             };
 
-            var job = new UpdateJob()
-            {
+            var job = new UpdateJob() {
                 points = new NativeArray<PointCloud.Point>(PointCloud.Points, Allocator.TempJob),
-                positionMap = new NativeArray<Color>(pointCount, Allocator.TempJob),
-                colorMap = new NativeArray<Color>(pointCount, Allocator.TempJob)
+                positionMap = new NativeArray<Color>(count, Allocator.TempJob),
+                colorMap = new NativeArray<Color>(count, Allocator.TempJob)
             };
 
-            var jobBatchSize = pointCount < JobBatchSize ? pointCount : JobBatchSize;
-            job.Schedule(pointCount, jobBatchSize)
-                .Complete();
+            int jobBatchSize = count < JobBatchSize ? count : JobBatchSize;
+            job.Schedule(count, jobBatchSize).Complete();
 
             PositionMap.SetPixelData(job.positionMap, 0);
-            ColorMap.SetPixelData(job.colorMap, 0);
-
             PositionMap.Apply();
+
+            ColorMap.SetPixelData(job.colorMap, 0);
             ColorMap.Apply();
 
             job.points.Dispose();
@@ -96,24 +89,20 @@ namespace Eidetic.URack
         }
 
         [BurstCompile]
-        public struct UpdateJob : IJobParallelFor
-        {
+        public struct UpdateJob : IJobParallelFor {
             public NativeArray<PointCloud.Point> points;
             public NativeArray<Color> positionMap;
             public NativeArray<Color> colorMap;
-            public void Execute(int i)
-            {
+            public void Execute(int i) {
                 var point = points[i];
 
-                positionMap[i] = new Color()
-                {
+                positionMap[i] = new Color() {
                     r = point.Position.x,
                     g = point.Position.y,
                     b = point.Position.z
                 };
 
-                colorMap[i] = new Color()
-                {
+                colorMap[i] = new Color() {
                     r = point.Color.r,
                     g = point.Color.g,
                     b = point.Color.b
