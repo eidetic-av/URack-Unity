@@ -7,10 +7,10 @@ namespace Eidetic.URack
 {
     public class Mirage2x : VFXModule
     {
-        public string Folder = "Mirage Images";
+        static string Folder = "BladeRunner";
 
-        List<Texture2D> images;
-        List<Texture2D> Images {
+        static List<Texture2D> images;
+        static List<Texture2D> Images {
             get {
                 if (images != null) return images;
                 images = new List<Texture2D>();
