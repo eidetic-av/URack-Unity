@@ -30,16 +30,22 @@ public class GlowWorm : UModule {
     [Input] public float OriginZ { set => transform.position =
             new Vector3(transform.position.x, transform.position.y, value); }
 
-    [Input] public float RotateX {
+    [Input] public float RotationX {
         set {
             var euler = transform.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(euler.x, euler.y, value.Map(-5, 5, -180, 180));
         }
     }
-    [Input] public float RotateY {
+    [Input] public float RotationY {
         set {
             var euler = transform.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(euler.x, value.Map(-5, 5, -180, 180), euler.z);
+        }
+    }
+    [Input] public float RotationZ {
+        set {
+            var euler = transform.rotation.eulerAngles;
+            transform.rotation = Quaternion.Euler(euler.x, euler.y, value.Map(-5, 5, -180, 180));
         }
     }
 
