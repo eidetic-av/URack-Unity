@@ -13,7 +13,7 @@ namespace Eidetic.URack
     public class PointCloudBinder : VFXBinderBase
     {
         [SerializeField] int MaxTextureSize = 8192;
-        [SerializeField] int JobBatchSize = 1024;
+        [SerializeField] int JobBatchSize = 2048;
 
         [VFXPropertyBinding("UnityEngine.Texture2D"), FormerlySerializedAs("Positions")]
         public ExposedProperty PositionsProperty = "Positions";
@@ -42,35 +42,39 @@ namespace Eidetic.URack
             if (count == 0) return;
 
             int width = MaxTextureSize;
-            int height = count / MaxTextureSize;
-            if (count < MaxTextureSize) {
-                width = count;
-                height = Mathf.CeilToInt( count / (float) MaxTextureSize);
+            int height = Mathf.CeilToInt( count / (float) MaxTextureSize);
+            var pixelCount = width * height;
+
+            // If the textures are undefined, create them
+            // and if they are a different size, resize them
+            if (PositionMap == null) {
+                PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
+                    name = gameObject.name + "-PositionMap",
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Repeat
+                };
+            }
+            else if (PositionMap.height != height) {
+                PositionMap.Resize(width, height, TextureFormat.RGBAFloat, false);
             }
 
-            if (PositionMap != null) Destroy(PositionMap);
-            if (ColorMap != null) Destroy(ColorMap);
-
-            PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
-                name = gameObject.name + "-PositionMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-            };
-
-            ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
-                name = gameObject.name + "-ColorMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-            };
+            if (ColorMap == null) {
+                ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
+                    name = gameObject.name + "-ColorMap",
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Repeat
+                };
+            } else if (ColorMap.height != height) {
+                ColorMap.Resize(width, height, TextureFormat.RGBAFloat, false);
+            }
 
             var job = new UpdateJob() {
                 points = new NativeArray<PointCloud.Point>(PointCloud.Points, Allocator.TempJob),
-                positionMap = new NativeArray<Color>(count, Allocator.TempJob),
-                colorMap = new NativeArray<Color>(count, Allocator.TempJob)
+                positionMap = new NativeArray<Color>(pixelCount, Allocator.TempJob),
+                colorMap = new NativeArray<Color>(pixelCount, Allocator.TempJob)
             };
 
-            int jobBatchSize = count < JobBatchSize ? count : JobBatchSize;
-            job.Schedule(count, jobBatchSize).Complete();
+            job.Schedule(pixelCount, JobBatchSize).Complete();
 
             PositionMap.SetPixelData(job.positionMap, 0);
             PositionMap.Apply();
@@ -94,19 +98,28 @@ namespace Eidetic.URack
             public NativeArray<Color> positionMap;
             public NativeArray<Color> colorMap;
             public void Execute(int i) {
-                var point = points[i];
-
-                positionMap[i] = new Color() {
-                    r = point.Position.x,
-                    g = point.Position.y,
-                    b = point.Position.z
-                };
-
-                colorMap[i] = new Color() {
-                    r = point.Color.r,
-                    g = point.Color.g,
-                    b = point.Color.b
-                };
+                // transfer the point if it exists
+                if (i < points.Length) {
+                    var point = points[i];
+                    positionMap[i] = new Color() {
+                        r = point.Position.x,
+                        g = point.Position.y,
+                        b = point.Position.z
+                    };
+                    colorMap[i] = new Color() {
+                        r = point.Color.r,
+                        g = point.Color.g,
+                        b = point.Color.b
+                    };
+                }
+                // if it doesn't exist for this index,
+                // fill the remaining pixels of the texture
+                // with a dummy value
+                // transparent and out of the way
+                else {
+                    positionMap[i] = Color.white * 5000f;
+                    colorMap[i] = Color.clear;
+                }
             }
         }
 
