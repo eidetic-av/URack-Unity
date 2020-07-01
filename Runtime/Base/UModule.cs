@@ -66,6 +66,7 @@ namespace Eidetic.URack {
         }
 
         public static void Remove(int id) {
+            if (!Instances.ContainsKey(id)) return;
             Destroy(Instances[id].gameObject);
             Instances.Remove(id);
         }
