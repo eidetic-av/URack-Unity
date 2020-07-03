@@ -5,20 +5,23 @@ using Harmony;
 using System.Reflection;
 using System.Linq;
 
-namespace Eidetic.URack {
-    public abstract partial class UModule : MonoBehaviour {
+namespace Eidetic.URack 
+{
+    public abstract partial class UModule : MonoBehaviour
+    {
         public static Dictionary<int, UModule> Instances { get; private set; } = new Dictionary<int, UModule>();
         static HarmonyInstance Patcher;
         static UModule() => Patcher = HarmonyInstance.Create("Eidetic.URack.UModule");
         static List<Type> PatchedTypes = new List<Type>();
 
-        public static UModule Create(string moduleName, int id) {
+        public static UModule Create(string moduleName, int id) 
+        {
             // Load the module's prefab into the scene
             var gameObject = Instantiate(Resources.Load<GameObject>(moduleName + "Prefab"));
             var instanceName = moduleName + "Instance" + id;
             gameObject.name = instanceName;
-            // set properties for the script
 
+            // set properties
             var moduleInstance = Instances[id] = gameObject.GetComponent<UModule>();
             moduleInstance.ModuleType = moduleName;
             moduleInstance.InstanceName = instanceName;
@@ -61,18 +64,24 @@ namespace Eidetic.URack {
              Patcher.Patch(updateMethod, connectionUpdate);
 
             PatchedTypes.Add(moduleType);
+            
+            // After creating a module, we should query if the VCV patch has
+            // stored any connections for it
+            Osc.Server.Send<string>("QueryConnections", moduleInstance.InstanceAddress);
 
             return moduleInstance;
         }
 
-        public static void Remove(int id) {
+        public static void Remove(int id) 
+        {
             if (!Instances.ContainsKey(id)) return;
             Destroy(Instances[id].gameObject);
             Instances.Remove(id);
         }
 
         // patch the setter so that it adds the new voltage to our Voltages array
-        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value) {
+        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value) 
+        {
             // get the setter from the InputsBySetter dictionary.
             // if it doesn't exist in there yet then add it
             var input = __instance.InputsBySetter.ContainsKey(__originalMethod)
@@ -83,7 +92,8 @@ namespace Eidetic.URack {
             __instance.Voltages[input] = __instance.Voltages[input].Replace(1, value);
         }
 
-        public static void ValueUpdate(UModule __instance) {
+        public static void ValueUpdate(UModule __instance) 
+        {
             if (__instance.Active) {
                 foreach (var input in __instance.Inputs) {
                     if (input.Property.PropertyType == typeof(PointCloud))
@@ -107,7 +117,8 @@ namespace Eidetic.URack {
                 }
             }
         }
-        public static void ConnectionUpdate(UModule __instance) {
+        public static void ConnectionUpdate(UModule __instance) 
+        {
                     if (!__instance.Active) return;
                     foreach (var connection in __instance.Connections) {
                         foreach (var target in connection.Value) {

@@ -36,7 +36,7 @@ namespace Eidetic.URack
                 colors = new NativeArray<Color32>(colors, Allocator.TempJob),
                 points = new NativeArray<PointCloud.Point>(pointCount, Allocator.TempJob)
             };
-            int jobBatchSize = pointCount < 2000 ? pointCount : 2000;
+            int jobBatchSize = pointCount < 2048 ? pointCount : 2048;
             loadPointsJob.Schedule(jobBatchSize, jobBatchSize).Complete();
 
             Points = new Point[pointCount];
