@@ -232,7 +232,7 @@ namespace Eidetic.URack.Osc
                     Encoder.Clear();
                     Encoder.Append("/QueryConnections");
                     Encoder.Append(",s");
-                    Encoder.Append("/Instance" + (string)item.Item3);
+                    Encoder.Append("Instance" + (string)item.Item3);
 
                     foreach (var endpoint in Clients.Values)
                         Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
