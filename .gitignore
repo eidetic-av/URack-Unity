@@ -62,3 +62,6 @@ crashlytics-build.properties
 # Ignore ply sequences for now
 *.ply
 *.ply.meta
+
+# Ignore built dll
+URack-Unity.dll

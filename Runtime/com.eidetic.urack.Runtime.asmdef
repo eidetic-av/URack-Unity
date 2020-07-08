@@ -1,5 +1,5 @@
 {
-    "name": "com.eidetic.urack.Runtime",
+    "name": "com.Eidetic.URack.Runtime",
     "references": [
         "Unity.Burst",
         "Unity.Collections",
