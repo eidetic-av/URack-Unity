@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using UnityEngine;
 using System;
-using Harmony;
-using System.Reflection;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Harmony;
+using UnityEngine;
 
-namespace Eidetic.URack 
+namespace Eidetic.URack
 {
     public abstract partial class UModule : MonoBehaviour
     {
@@ -14,10 +14,10 @@ namespace Eidetic.URack
         static UModule() => Patcher = HarmonyInstance.Create("Eidetic.URack.UModule");
         static List<Type> PatchedTypes = new List<Type>();
 
-        public static UModule Create(string moduleName, int id) 
+        public static UModule Create(string moduleName, int id)
         {
             // Load the module's prefab into the scene
-            var gameObject = Instantiate(Resources.Load<GameObject>(moduleName + "Prefab"));
+            var gameObject = Instantiate(GetUModulePrefab(moduleName));
             var instanceName = moduleName + "Instance" + id;
             gameObject.name = instanceName;
 
@@ -30,11 +30,16 @@ namespace Eidetic.URack
 
             // Apply patches for automatic input voltage processing
             var moduleType = Type.GetType("Eidetic.URack." + moduleName);
+#if UNITY_EDITOR
+            if (moduleType == null)
+                moduleType = Type.GetType("Eidetic.URack." + moduleName + ", Assembly-CSharp");
+#endif
             var inputProperties = moduleType.GetProperties()
                 .Where(p => p.GetCustomAttribute<InputAttribute>() != null).ToArray();
 
             // for each "Input" apply a prefix to the property's set method
-            foreach (var inputProperty in inputProperties) {
+            foreach (var inputProperty in inputProperties)
+            {
                 if (inputProperty.PropertyType == typeof(PointCloud))
                     continue;
 
@@ -56,15 +61,15 @@ namespace Eidetic.URack
             // to perform processing (mapping + smoothing) without the module
             // needing to call any ValueUpdate method manually
             var updateMethod = moduleType.GetMethod("Update");
-            
+
             var valueUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ValueUpdate"));
             Patcher.Patch(updateMethod, valueUpdate);
-             // do the same for ConnectionUpdate
-             var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
-             Patcher.Patch(updateMethod, connectionUpdate);
+            // do the same for ConnectionUpdate
+            var connectionUpdate = new HarmonyMethod(typeof(UModule).GetMethod("ConnectionUpdate"));
+            Patcher.Patch(updateMethod, connectionUpdate);
 
             PatchedTypes.Add(moduleType);
-            
+
             // After creating a module, we should query if the VCV patch has
             // stored any connections for it
             Osc.Server.Send<string>("QueryConnections", moduleInstance.InstanceAddress);
@@ -72,7 +77,7 @@ namespace Eidetic.URack
             return moduleInstance;
         }
 
-        public static void Remove(int id) 
+        public static void Remove(int id)
         {
             if (!Instances.ContainsKey(id)) return;
             Destroy(Instances[id].gameObject);
@@ -80,22 +85,24 @@ namespace Eidetic.URack
         }
 
         // patch the setter so that it adds the new voltage to our Voltages array
-        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value) 
+        public static void SetterPrefix(UModule __instance, MethodBase __originalMethod, float value)
         {
             // get the setter from the InputsBySetter dictionary.
             // if it doesn't exist in there yet then add it
-            var input = __instance.InputsBySetter.ContainsKey(__originalMethod)
-                ? __instance.InputsBySetter[__originalMethod]
-                : (__instance.InputsBySetter[__originalMethod] = __instance.Inputs
+            var input = __instance.InputsBySetter.ContainsKey(__originalMethod) ?
+                __instance.InputsBySetter[__originalMethod] :
+                (__instance.InputsBySetter[__originalMethod] = __instance.Inputs
                     .Find(i => i.Property.GetSetMethod() == __originalMethod));
             // set the voltage.y value as the new value
             __instance.Voltages[input] = __instance.Voltages[input].Replace(1, value);
         }
 
-        public static void ValueUpdate(UModule __instance) 
+        public static void ValueUpdate(UModule __instance)
         {
-            if (__instance.Active) {
-                foreach (var input in __instance.Inputs) {
+            if (__instance.Active)
+            {
+                foreach (var input in __instance.Inputs)
+                {
                     if (input.Property.PropertyType == typeof(PointCloud))
                         continue;
 
@@ -117,18 +124,20 @@ namespace Eidetic.URack
                 }
             }
         }
-        public static void ConnectionUpdate(UModule __instance) 
+        public static void ConnectionUpdate(UModule __instance)
         {
-                    if (!__instance.Active) return;
-                    foreach (var connection in __instance.Connections) {
-                        foreach (var target in connection.Value) {
-                            var module = target.ModuleInstance;
-                            if (!module.Active) continue;
-                            var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
-                            target.SetMethod.Invoke(module, new object[] { value });
-                        }
-                    }
+            if (!__instance.Active) return;
+            foreach (var connection in __instance.Connections)
+            {
+                foreach (var target in connection.Value)
+                {
+                    var module = target.ModuleInstance;
+                    if (!module.Active) continue;
+                    var value = connection.Key.GetMethod.Invoke(__instance, new object[0]);
+                    target.SetMethod.Invoke(module, new object[] { value });
                 }
+            }
+        }
         public int Id { get; private set; }
         public string ModuleType { get; private set; }
         public string InstanceName { get; private set; }

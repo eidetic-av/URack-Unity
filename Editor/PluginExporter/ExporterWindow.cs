@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
 using System.Diagnostics;
 using System.IO;
+using UnityEditor;
+using UnityEngine;
 
 public class ExporterWindow : EditorWindow
 {
@@ -65,31 +65,40 @@ public class ExporterWindow : EditorWindow
 
         compilerArgs += " -lib:\"" + unityLibsPath + "\"" + ",\"" + packageLibPath + "\"";
 
-        foreach(var unityLib in Directory.GetFiles(unityLibsPath))
+        foreach (var unityLib in Directory.GetFiles(unityLibsPath))
             if (unityLib.Contains(".dll"))
                 compilerArgs += " -r:\"" + Path.GetFileName(unityLib) + "\"";
 
-        foreach(var packageLib in Directory.GetFiles(packageLibPath))
+        foreach (var packageLib in Directory.GetFiles(packageLibPath))
             if (packageLib.Contains(".dll") && !packageLib.Contains("Editor"))
                 compilerArgs += " -r:\"" + Path.GetFileName(packageLib) + "\"";
 
         // add project source files
         compilerArgs += " -recurse:" + Application.dataPath + "/" + SourceDirectory + "/*.cs ";
 
+        // var compilerPath = EditorApplication.applicationPath.Replace("Unity.exe", "");
+        // compilerPath += "Data/MonoBleedingEdge/lib/mono/4.5/mcs.exe";
+
         // compile plugin dll
         Process.Start("mcs", compilerArgs).WaitForExit();
 
-        // copy resources to output folder
-        var assetsFolder = new DirectoryInfo(Application.dataPath + "/" + SourceDirectory + "/");
-        foreach(var resource in assetsFolder.GetFiles("*.*", SearchOption.AllDirectories))
-        if (resource.FullName.Contains("\\Resources\\") || resource.FullName.Contains("/Resources/"))
-            if (!resource.Name.Contains(".meta") && resource.Name.Contains("."))
-            {
-                var newPath = outputDirPath + "/Resources/" + resource.Name;
-                new FileInfo(newPath).Directory.Create();
-                File.Copy(resource.FullName, newPath, true);
-            }
+        // build asset bundles in project directory
+        var assetBundleDir = "Assets/temp_build/AB/";
+        new FileInfo(assetBundleDir).Directory.Create();
+        BuildPipeline.BuildAssetBundles(assetBundleDir, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
 
-        EditorUtility.RevealInFinder(pluginDll);
+        // find asset bundle for this plugin and move to build dir
+        // var assetBundleDirPath = Application.dataPath.Replace("Assets", assetBundleDir);
+        // foreach (var file in Directory.GetFiles(assetBundleDirPath))
+        //     if (file.ToLower().Contains(pluginName.ToLower()))
+        //     {
+        //         var fileName = Path.GetFileName(file);
+        //         File.Move(file, outputDirPath + "/" + fileName);
+        //     }
+
+        // remove remaining asset bundles from project dir
+        // Directory.Delete(assetBundleDir);
+
+        // EditorUtility.RevealInFinder(pluginDll);
     }
 }
