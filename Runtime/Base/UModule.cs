@@ -35,9 +35,9 @@ namespace Eidetic.URack
             if (moduleType == null)
                 moduleType = Type.GetType("Eidetic.URack." + moduleName + ", Assembly-CSharp");
 #endif
-            // Try traversing loaded plugins to find the assembly
+            // Find the module in assemblies loaded in plugins
             if (moduleType == null)
-                Debug.Log("need to traverse");
+                moduleType = Application.PluginModules[moduleName];
 
             // Apply patches for automatic input voltage processing
             var inputProperties = moduleType.GetProperties()

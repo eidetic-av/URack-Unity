@@ -35,25 +35,31 @@ namespace Eidetic.URack
             return null;
         }
 
-        public List<UnityEngine.Object> GetAssets()
+        public List<Texture2D> GetTextureAssets(string searchFilter = "")
         {
-            var assets = new List<UnityEngine.Object>();
+            var textures = new List<Texture2D>();
 #if UNITY_EDITOR
-            foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(ModuleType.ToLower() + "assets"))
-                assets.Add(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath));
-#else
+            foreach (var path in AssetDatabase.GetAssetPathsFromAssetBundle(ModuleType.ToLower() + "assets"))
+            {
+                if (searchFilter != "" && !path.Contains(searchFilter)) continue;
+                if (!path.Contains(".png") && !path.Contains(".jpg")) continue;
+                var data = System.IO.File.ReadAllBytes(path);
+                var texture = new Texture2D(1, 1);
+                if (texture.LoadImage(data))
+                    textures.Add(texture);
+            }
 #endif
-            Debug.Log(assets.Count());
-            return assets;
-        }
-
-        public string[] GetAssetPaths()
-        {
-#if UNITY_EDITOR
-            return AssetDatabase.GetAssetPathsFromAssetBundle(ModuleType.ToLower() + "assets");
-#else
-#endif
-            return new string[] { };
+            if (!Application.ModuleAssets.ContainsKey(ModuleType)) return textures;
+            var moduleAssets = Application.ModuleAssets[ModuleType];
+            foreach (var name in moduleAssets.GetAllAssetNames())
+            {
+                if (searchFilter != "" && !name.Contains(searchFilter.ToLower())) continue;
+                if (!name.Contains(".png") && !name.Contains(".jpg")) continue;
+                var texture = moduleAssets.LoadAsset<Texture2D>(name);
+                if (texture != null)
+                    textures.Add(texture);
+            }
+            return textures;
         }
 
     }
