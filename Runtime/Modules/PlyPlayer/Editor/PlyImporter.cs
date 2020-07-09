@@ -1,5 +1,5 @@
-// // Pcx - Point cloud importer by Keijiro
-// // https://github.com/keijiro/Pcx
+// Pcx - Point cloud importer by Keijiro
+// https://github.com/keijiro/Pcx
 
 // using System;
 // using System.Collections.Generic;

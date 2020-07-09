@@ -158,7 +158,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MaxTextureSize: 8192
-  JobBatchSize: 2000
+  JobBatchSize: 2048
   PositionsProperty:
     m_Name: Positions
   ColorsProperty:

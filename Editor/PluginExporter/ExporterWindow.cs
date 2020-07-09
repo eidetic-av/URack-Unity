@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using LightBuzz.Archiver;
@@ -14,6 +16,7 @@ public class ExporterWindow : EditorWindow
     static string PluginName = "Plugin Name";
     static string PluginVersion = "1.0.0";
     static string SourceDirectory = "";
+    static string OutputDirectory = "";
 
     [MenuItem("URack/Export Plugin")]
     static void Open()
@@ -27,6 +30,7 @@ public class ExporterWindow : EditorWindow
             PluginName = PlayerPrefs.GetString("URackExporter_PluginName_" + ProjectName);
             PluginVersion = PlayerPrefs.GetString("URackExporter_PluginVersion_" + ProjectName);
             SourceDirectory = PlayerPrefs.GetString("URackExporter_SourceDirectory_" + ProjectName);
+            OutputDirectory = PlayerPrefs.GetString("URackExporter_OutputDirectory_" + ProjectName);
         }
     }
 
@@ -54,8 +58,11 @@ public class ExporterWindow : EditorWindow
     {
         var pluginName = PluginName.Replace(" ", "");
 
-        var parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
+        string parentDir = "";
+        if (OutputDirectory == "") parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
             Application.dataPath.Replace("/Assets", ""), "Build");
+        else parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
+            Path.GetDirectoryName(OutputDirectory), new DirectoryInfo(OutputDirectory).Name);
 
         // exit if dialog cancelled
         if (parentDir == "") return;
@@ -107,9 +114,48 @@ public class ExporterWindow : EditorWindow
         // compile plugin dll
         Process.Start("mcs", compilerArgs).WaitForExit();
 
-        // build and export asset bundles
+
+        // Update script references on the plugin prefab so they
+        // reference the new dll assembly instead of the editor scripting assembly
+        var newAssembly = Assembly.LoadFrom(pluginDll);
+        var newAssemblyTypes = newAssembly.GetTypes().ToList();
+        var updatedComponents = new List<(string, System.Type, System.Type)>();
+
+        var assetBundleName = pluginName.ToLower() + "assets";
+        foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName))
+            if (assetPath.Contains(".prefab"))
+            {
+                var prefabContents = PrefabUtility.LoadPrefabContents(assetPath);
+                foreach (var component in prefabContents.GetComponents<Component>())
+                {
+                    var componentType = component.GetType();
+                    // if the component is located within the current editor assembly,
+                    // swap it for the one in the dll
+                    if (componentType.Assembly.FullName.Contains("Assembly-CSharp"))
+                    {
+                        var typeName = componentType.Name;
+                        var newType = newAssemblyTypes.First(t => t.Name == typeName);
+                        Component.DestroyImmediate(component);
+                        prefabContents.AddComponent(newType);
+                        updatedComponents.Add((assetPath, componentType, newType));
+                    }
+                }
+                PrefabUtility.SaveAsPrefabAsset(prefabContents, assetPath);
+            }
+
+        // build asset bundles
         BuildPipeline.BuildAssetBundles(outputDirPath,
             BuildAssetBundleOptions.None, EditorUserBuildSettings.activeBuildTarget);
+
+        // change prefabs back to original script now bundle is exported
+        foreach (var updatedComponent in updatedComponents)
+        {
+            var prefabContents = PrefabUtility.LoadPrefabContents(updatedComponent.Item1);
+            var component = prefabContents.GetComponent(updatedComponent.Item3);
+            Component.DestroyImmediate(component);
+            prefabContents.AddComponent(updatedComponent.Item2);
+            PrefabUtility.SaveAsPrefabAsset(prefabContents, updatedComponent.Item1);
+        }
 
         // compress all files into a URack plugin archive
         var pluginArchive = parentDir + "/" + pluginName + "-" + PluginVersion + ".zip";
@@ -125,5 +171,6 @@ public class ExporterWindow : EditorWindow
         PlayerPrefs.SetString("URackExporter_PluginName_" + ProjectName, PluginName);
         PlayerPrefs.SetString("URackExporter_PluginVersion_" + ProjectName, PluginVersion);
         PlayerPrefs.SetString("URackExporter_SourceDirectory_" + ProjectName, SourceDirectory);
+        PlayerPrefs.SetString("URackExporter_OutputDirectory_" + ProjectName, parentDir);
     }
 }

@@ -10,13 +10,12 @@ namespace Eidetic.URack
 {
     public class PlyPlayer : UModule
     {
-        public string FolderName = "Emanouella";
+        public string FolderName = "sample_50000";
 
         [Input] public float Run { get; set; }
         [Input] public float Reset { get; set; }
 
-        [Input] public float Speed { get; set; }
-        float FrameTime => Speed.Map(-1, 1, 0.5f, 0.0001f);
+        [Input(1)] public float Speed { get; set; }
 
         [Input(-5, 5, -180, 180)] public float RotationX {get; set;}
         [Input(-5, 5, -180, 180)] public float RotationY {get; set;}
@@ -35,23 +34,12 @@ namespace Eidetic.URack
         PointCloud pointCloudOutput;
         public PointCloud PointCloudOutput => pointCloudOutput ?? (pointCloudOutput = ScriptableObject.CreateInstance<PointCloud>());
 
+        int frameCount = 0;
         List<PointCloud> Frames;
 
         float lastFrameTime;
-        int currentFrameNumber;
-        PointCloud CurrentFrame
-        {
-            get
-            {
-                var delta = Mathf.Abs(Time.time - lastFrameTime);
-                if (delta > FrameTime)
-                {
-                    currentFrameNumber = (currentFrameNumber + 1) % Frames.Count();
-                    lastFrameTime = Time.time;
-                }
-                return Frames[currentFrameNumber];
-            }
-        }
+        int currentFrameNumber => Mathf.FloorToInt(Speed.Map(0, 10, 0, frameCount - 1));
+        PointCloud CurrentFrame => Frames[Mathf.Clamp(currentFrameNumber, 0, frameCount - 1)];
 
         public void Start()
         {
@@ -60,10 +48,12 @@ namespace Eidetic.URack
             {
                 var frame = ScriptableObject.CreateInstance<PointCloud>();
                 frame.Points = new PointCloud.Point[ply.PointCount];
+                Debug.Log(frame.PointCount);
                 ply.Points.CopyTo(frame.Points, 0);
                 Frames.Add(frame);
+                frameCount++;
             }
-            Debug.Log($"Loaded {Frames.Count()} frames into PlyPlayer instance");
+            Debug.Log($"Loaded {frameCount} frames into PlyPlayer instance");
         }
 
         public void Update() {
@@ -78,7 +68,7 @@ namespace Eidetic.URack
                 points = new NativeArray<PointCloud.Point>(framePoints, Allocator.TempJob)
             };
 
-            var jobBatchSize = framePoints.Length > 2000 ? 2000 : framePoints.Length;
+            var jobBatchSize = 64;
 
             transformJob.Schedule(framePoints.Length, jobBatchSize).Complete();
 
