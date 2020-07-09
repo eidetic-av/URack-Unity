@@ -30,6 +30,15 @@ namespace Eidetic.URack
 
             // Apply patches for automatic input voltage processing
             var moduleType = Type.GetType("Eidetic.URack." + moduleName);
+
+#if UNITY_EDITOR
+            // We can't get the module Type like above if the plugin is not 
+            // compiled (i.e. during development)
+            // It is still contained within the CSharp scripts assembly
+            if (moduleType == null)
+                moduleType = Type.GetType("Eidetic.URack." + moduleName + ", Assembly-CSharp");
+#endif
+
             var inputProperties = moduleType.GetProperties()
                 .Where(p => p.GetCustomAttribute<InputAttribute>() != null).ToArray();
 
