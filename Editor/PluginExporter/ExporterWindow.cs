@@ -2,18 +2,24 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Reflection;
+using Eidetic.URack.Packaging;
+using LightBuzz.Archiver;
 using UnityEditor;
 using UnityEngine;
-using LightBuzz.Archiver;
 
 public class ExporterWindow : EditorWindow
 {
-    static string projectName;
-    static string ProjectName => projectName ??
-        (projectName = new FileInfo(Application.dataPath).Directory.Name);
     static string PluginName = "Plugin Name";
     static string PluginVersion = "1.0.0";
     static string SourceDirectory = "";
+    static string OutputDirectory = "";
+
+    static string projectName;
+    static string ProjectName => projectName ??
+        (projectName = new FileInfo(Application.dataPath).Directory.Name);
 
     [MenuItem("URack/Export Plugin")]
     static void Open()
@@ -27,6 +33,7 @@ public class ExporterWindow : EditorWindow
             PluginName = PlayerPrefs.GetString("URackExporter_PluginName_" + ProjectName);
             PluginVersion = PlayerPrefs.GetString("URackExporter_PluginVersion_" + ProjectName);
             SourceDirectory = PlayerPrefs.GetString("URackExporter_SourceDirectory_" + ProjectName);
+            OutputDirectory = PlayerPrefs.GetString("URackExporter_OutputDirectory_" + ProjectName);
         }
     }
 
@@ -54,8 +61,11 @@ public class ExporterWindow : EditorWindow
     {
         var pluginName = PluginName.Replace(" ", "");
 
-        var parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
+        string parentDir = "";
+        if (OutputDirectory == "") parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
             Application.dataPath.Replace("/Assets", ""), "Build");
+        else parentDir = EditorUtility.OpenFolderPanel("Select Output Directory",
+            Path.GetDirectoryName(OutputDirectory), new DirectoryInfo(OutputDirectory).Name);
 
         // exit if dialog cancelled
         if (parentDir == "") return;
@@ -80,13 +90,14 @@ public class ExporterWindow : EditorWindow
 
         var compilerArgs = "-t:library -out:" + pluginDll;
 
-        // reference UnityEngine libs and package dlls used in current project
+        // reference UnityEngine libs, mono libs, and package dlls used in current project
         var editorPath = Path.GetDirectoryName(EditorApplication.applicationPath);
 
         var unityLibsPath = editorPath + "/Data/Managed/UnityEngine/";
+        var monoLibsPath = editorPath + "/Data/MonoBleedingEdge/lib/mono/unity/";
         var packageLibPath = Application.dataPath.Replace("Assets", "/Library/ScriptAssemblies/");
 
-        compilerArgs += " -lib:\"" + unityLibsPath + "\"" + ",\"" + packageLibPath + "\"";
+        compilerArgs += " -lib:\"" + unityLibsPath  + "\",\"" + packageLibPath + "\"";
 
         foreach (var unityLib in Directory.GetFiles(unityLibsPath))
             if (unityLib.Contains(".dll"))
@@ -99,31 +110,106 @@ public class ExporterWindow : EditorWindow
         // add project source files
         compilerArgs += " -recurse:" + Application.dataPath + "/" + SourceDirectory + "/*.cs ";
 
-        // TODO since mono comes bundled with unity, figure out how
-        // to use this version instead of the one on Path
-        // var compilerPath = EditorApplication.applicationPath.Replace("Unity.exe", "");
-        // compilerPath += "Data/MonoBleedingEdge/lib/mono/4.5/mcs.exe";
+        // get mono compiler from Unity install
+        var compilerPath = Path.GetDirectoryName(EditorApplication.applicationPath);
+        compilerPath += "/Data/MonoBleedingEdge/bin/mcs";
+#if UNITY_EDITOR_WIN
+        compilerPath += ".bat";
+#endif
+        var compilerStartInfo = new ProcessStartInfo();
+        compilerStartInfo.FileName = compilerPath;
+        compilerStartInfo.Arguments = compilerArgs;
+        compilerStartInfo.RedirectStandardError = true;
+        compilerStartInfo.UseShellExecute = false;
 
-        // compile plugin dll
-        Process.Start("mcs", compilerArgs).WaitForExit();
+        var compilerProcess = new Process();
+        compilerProcess.StartInfo = compilerStartInfo;
 
-        // build and export asset bundles
+        // capture errors
+        var standardError = new System.Text.StringBuilder();
+        compilerProcess.ErrorDataReceived +=
+            (s, args) => standardError.AppendLine(args.Data);
+
+        compilerProcess.Start();
+        compilerProcess.BeginErrorReadLine();
+        compilerProcess.WaitForExit();
+
+        // compiler tends to generate a lot of empty whitespace
+        // at standard error
+        var errorString = Regex.Replace(standardError.ToString(),
+            @"^\r?\n?$", "", RegexOptions.Multiline);
+        if (errorString.Length != 0)
+        {
+            UnityEngine.Debug.LogError("Plugin compilation failed with:\n" + errorString);
+            return;
+        }
+
+        UnityEngine.Debug.Log("Plugin .dll compilation succeeded.");
+
+        // Replace custom components with a proxy.
+        // This proxy reloads the actual components at runtime
+        // from the dll
+        var proxiedPrefabs = new List<string>();
+
+        var assetBundleName = pluginName.ToLower() + "assets";
+        foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName))
+            if (assetPath.Contains(".prefab"))
+            {
+                var prefabContents = PrefabUtility.LoadPrefabContents(assetPath);
+                foreach (var component in prefabContents.GetComponents<Component>())
+                {
+                    var componentType = component.GetType();
+                    // if the component is located within the current project's scripting
+                    // assembly, swap it for the proxy that loads from the dll
+                    if (componentType.Assembly.FullName.Contains("Assembly-CSharp"))
+                    {
+                        var componentProxy = prefabContents.AddComponent<ComponentProxy>();
+                        componentProxy.TypeName = componentType.FullName;
+                        componentProxy.PluginAssembly = pluginName;
+                        MonoBehaviour.DestroyImmediate(component);
+                        proxiedPrefabs.Add(assetPath);
+                    }
+                }
+                PrefabUtility.SaveAsPrefabAsset(prefabContents, assetPath);
+            }
+
+        // build asset bundles
         BuildPipeline.BuildAssetBundles(outputDirPath,
             BuildAssetBundleOptions.None, EditorUserBuildSettings.activeBuildTarget);
+        
+        UnityEngine.Debug.Log("Asset bundle exported.");
+
+        // change proxies back to original components now bundle is exported
+        foreach (var prefabPath in proxiedPrefabs)
+        {
+            var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+            foreach (var proxy in prefabContents.GetComponents<ComponentProxy>())
+            {
+                var componentType = System.Type.GetType(proxy.TargetType + ", Assembly-CSharp");
+                prefabContents.AddComponent(componentType);
+                Component.DestroyImmediate(proxy);
+            }
+            PrefabUtility.SaveAsPrefabAsset(prefabContents, prefabPath);
+        }
 
         // compress all files into a URack plugin archive
         var pluginArchive = parentDir + "/" + pluginName + "-" + PluginVersion + ".zip";
         if (File.Exists(pluginArchive)) File.Delete(pluginArchive);
         Archiver.Compress(outputDirPath, pluginArchive);
+        
+        UnityEngine.Debug.Log("Plugin files packed.");
 
         // remove temp directory now it's archived
         Directory.Delete(outputDirPath, true);
 
         EditorUtility.RevealInFinder(pluginArchive);
+        
+        UnityEngine.Debug.Log("Plugin exported successfully.");
 
         // store plugin export settings for next export
         PlayerPrefs.SetString("URackExporter_PluginName_" + ProjectName, PluginName);
         PlayerPrefs.SetString("URackExporter_PluginVersion_" + ProjectName, PluginVersion);
         PlayerPrefs.SetString("URackExporter_SourceDirectory_" + ProjectName, SourceDirectory);
+        PlayerPrefs.SetString("URackExporter_OutputDirectory_" + ProjectName, parentDir);
     }
 }
