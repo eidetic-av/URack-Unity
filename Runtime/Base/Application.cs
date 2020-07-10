@@ -42,6 +42,9 @@ namespace Eidetic.URack
             foreach (var file in Directory.GetFiles(PluginsDirectory, "*.zip"))
             {
                 var unpackFolder = file.Replace(".zip", "/");
+                unpackFolder = unpackFolder.Replace("-win64", "");
+                unpackFolder = unpackFolder.Replace("-linux", "");
+                unpackFolder = unpackFolder.Replace("-macos", "");
                 if (Directory.Exists(unpackFolder)) Directory.Delete(unpackFolder, true);
                 new DirectoryInfo(unpackFolder).Create();
                 Archiver.Decompress(file, unpackFolder);
