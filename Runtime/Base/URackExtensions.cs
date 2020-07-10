@@ -94,5 +94,39 @@ namespace Eidetic.URack
         /// </summary>
         public static List<Type> GetAllDerivedTypes(this AppDomain appDomain, Type type) =>
             appDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(t => t.IsSubclassOf(type)).ToList();
+    
+        /// <summary>
+        /// Check if a path is of a valid texture file format.
+        /// </summary>
+        public static bool IsTexturePath(this string filePath)
+        {
+            var path = filePath.ToLower();
+            if (path.Contains(".bmp"))
+                return true;
+            if (path.Contains(".exr"))
+                return true;
+            if (path.Contains(".gif"))
+                return true;
+            if (path.Contains(".hdr"))
+                return true;
+            if (path.Contains(".iff"))
+                return true;
+            if (path.Contains(".jpg"))
+                return true;
+            if (path.Contains(".jpeg"))
+                return true;
+            if (path.Contains(".pict"))
+                return true;
+            if (path.Contains(".png"))
+                return true;
+            if (path.Contains(".psd"))
+                return true;
+            if (path.Contains(".tga"))
+                return true;
+            if (path.Contains(".tiff"))
+                return true;
+
+            return false;
+        }
     }
 }
