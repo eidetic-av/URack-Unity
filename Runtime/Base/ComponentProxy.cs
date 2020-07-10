@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace Eidetic.URack.Packaging
     {
         static Dictionary<(string, string), System.Type> TypeCache =
             new Dictionary<(string, string), System.Type>();
-        
+
         static System.Type GetComponentType(string typeName, string assembly)
         {
             if (TypeCache.ContainsKey((typeName, assembly)))
@@ -26,4 +27,4 @@ namespace Eidetic.URack.Packaging
             Destroy(this);
         }
     }
-} 
+}

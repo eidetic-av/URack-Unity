@@ -185,7 +185,7 @@ public class ExporterWindow : EditorWindow
             var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
             foreach (var proxy in prefabContents.GetComponents<ComponentProxy>())
             {
-                var componentType = System.Type.GetType(proxy.TargetType + ", Assembly-CSharp");
+                var componentType = System.Type.GetType(proxy.TypeName + ", Assembly-CSharp");
                 prefabContents.AddComponent(componentType);
                 Component.DestroyImmediate(proxy);
             }
