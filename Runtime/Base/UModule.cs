@@ -28,14 +28,15 @@ namespace Eidetic.URack
             moduleInstance.Id = id;
             moduleInstance.InstanceAddress = "/" + moduleName + "/" + id;
 
-            // First try getting the module's type from this URack Base assembly
-            var moduleType = Type.GetType("Eidetic.URack." + moduleName);
+            Type moduleType = null;
 #if UNITY_EDITOR
-            // If we're in the editor, try looking in the assembly for unpackaged code
-            if (moduleType == null)
-                moduleType = Type.GetType("Eidetic.URack." + moduleName + ", Assembly-CSharp");
+            // If we're in the editor, try looking for the module in unpackaged code
+            Assembly scriptingAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .SingleOrDefault(a => a.FullName.Contains("Assembly-CSharp"));
+            moduleType = scriptingAssembly?.GetTypes()
+                .SingleOrDefault(t => t.Name == moduleName);
 #endif
-            // Find the module in assemblies loaded in plugins
+            // Otherwise find the module in assemblies loaded in plugins
             if (moduleType == null)
                 moduleType = Application.PluginModules[moduleName];
 
