@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using UnityEngine;
 using LightBuzz.Archiver;
+using UnityEngine;
 
 namespace Eidetic.URack
 {
@@ -60,20 +60,20 @@ namespace Eidetic.URack
                 var dll = Directory.GetFiles(pluginPath, "*.dll").Single();
                 var assembly = Assembly.LoadFrom(dll);
                 var pluginName = Path.GetFileNameWithoutExtension(dll);
-                // Load assets
-                var assetBundlePath = Directory.GetFiles(pluginPath, pluginName.ToLower() + "assets").First();
-                var assetBundle = AssetBundle.LoadFromFile(assetBundlePath);
-
-                // Store in dictionaries
+                // Get each URack module included in the assembly
                 foreach (var uModule in assembly.GetTypes()
-                    .Where(t => t.BaseType == typeof(UModule) || t.BaseType == typeof(VFXModule)))
+                        .Where(t => t.BaseType == typeof(UModule) || t.BaseType == typeof(VFXModule)))
                 {
                     var moduleName = uModule.Name;
+                    // Store the module's type in the dictionary
                     PluginModules.Add(moduleName, uModule);
-                    ModuleAssets.Add(moduleName, assetBundle);
+                    // And load its assets if we find any
+                    var assetBundlePath = Directory
+                        .GetFiles(pluginPath, moduleName.ToLower() + "assets").FirstOrDefault();
+                    if (assetBundlePath != null)
+                        ModuleAssets.Add(moduleName, AssetBundle.LoadFromFile(assetBundlePath));
                 }
-
             }
         }
     }
-} 
+}

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Eidetic.URack.Packaging;
 using LightBuzz.Archiver;
 using UnityEditor;
@@ -125,7 +125,7 @@ namespace Eidetic.URack.Editor
             var compilerPath = Path.GetDirectoryName(EditorApplication.applicationPath);
             compilerPath += "/Data/MonoBleedingEdge/bin/mcs";
 #if UNITY_EDITOR_WIN
-        compilerPath += ".bat";
+            compilerPath += ".bat";
 #endif
             var compilerStartInfo = new ProcessStartInfo();
             compilerStartInfo.FileName = compilerPath;
@@ -149,7 +149,7 @@ namespace Eidetic.URack.Editor
             // at standard error
             var errorString = Regex.Replace(standardError.ToString(),
                 @"^\r?\n?$", "", RegexOptions.Multiline);
-            if (errorString.Length != 0)
+            if (errorString.ToLower().Contains("error"))
             {
                 UnityEngine.Debug.LogError("Plugin compilation failed with:\n" + errorString);
                 return;
@@ -162,27 +162,29 @@ namespace Eidetic.URack.Editor
             // from the dll
             var proxiedPrefabs = new List<string>();
 
-            var assetBundleName = pluginName.ToLower() + "assets";
-            foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName))
-                if (assetPath.Contains(".prefab"))
-                {
-                    var prefabContents = PrefabUtility.LoadPrefabContents(assetPath);
-                    foreach (var component in prefabContents.GetComponents<Component>())
+            foreach (var assetBundleName in AssetDatabase.GetAllAssetBundleNames())
+            {
+                foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName))
+                    if (assetPath.Contains(".prefab"))
                     {
-                        var componentType = component.GetType();
-                        // if the component is located within the current project's scripting
-                        // assembly, swap it for the proxy that loads from the dll
-                        if (componentType.Assembly.FullName.Contains("Assembly-CSharp"))
+                        var prefabContents = PrefabUtility.LoadPrefabContents(assetPath);
+                        foreach (var component in prefabContents.GetComponents<Component>())
                         {
-                            var componentProxy = prefabContents.AddComponent<ComponentProxy>();
-                            componentProxy.TypeName = componentType.FullName;
-                            componentProxy.PluginAssembly = pluginName;
-                            MonoBehaviour.DestroyImmediate(component);
-                            proxiedPrefabs.Add(assetPath);
+                            var componentType = component.GetType();
+                            // if the component is located within the current project's scripting
+                            // assembly, swap it for the proxy that loads from the dll
+                            if (componentType.Assembly.FullName.Contains("Assembly-CSharp"))
+                            {
+                                var componentProxy = prefabContents.AddComponent<ComponentProxy>();
+                                componentProxy.TypeName = componentType.FullName;
+                                componentProxy.PluginAssembly = pluginName;
+                                MonoBehaviour.DestroyImmediate(component);
+                                proxiedPrefabs.Add(assetPath);
+                            }
                         }
+                        PrefabUtility.SaveAsPrefabAsset(prefabContents, assetPath);
                     }
-                    PrefabUtility.SaveAsPrefabAsset(prefabContents, assetPath);
-                }
+            }
 
             // build asset bundles
             BuildPipeline.BuildAssetBundles(outputDirPath, BuildAssetBundleOptions.None,
@@ -205,7 +207,7 @@ namespace Eidetic.URack.Editor
 
             // compress all files into a URack plugin archive
             var pluginArchive = parentDir + "/" + pluginName + "-" + PluginVersion +
-                GetPlatformSuffix(TargetPlatform) +".zip";
+                GetPlatformSuffix(TargetPlatform) + ".zip";
             if (File.Exists(pluginArchive)) File.Delete(pluginArchive);
             Archiver.Compress(outputDirPath, pluginArchive);
 
@@ -237,8 +239,10 @@ namespace Eidetic.URack.Editor
         static MethodInfo BuildTargetStringMethod => buildTargetStringMethod ??
             (buildTargetStringMethod = ModuleManager.GetMethod("GetTargetStringFromBuildTarget",
                 System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
-        static bool CheckPlatformSupport(BuildTarget buildTarget) => (bool)SupportLoadedMethod.Invoke(null, new object[]
-                { (string)BuildTargetStringMethod.Invoke(null, new object[] { buildTarget }) });
+        static bool CheckPlatformSupport(BuildTarget buildTarget) => (bool) SupportLoadedMethod.Invoke(null, new object[]
+        {
+            (string) BuildTargetStringMethod.Invoke(null, new object[] { buildTarget })
+        });
         static string[] GetAvailablePlatforms()
         {
             var availablePlatforms = new List<string>();
