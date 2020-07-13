@@ -7,7 +7,6 @@
         "Unity.Jobs",
         "Unity.VisualEffectGraph.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
-        "Unity.RenderPipelines.HighDefinition.Runtime",
         "Unity.Mathematics",
         "com.Eidetic.ColorExtensions"
     ],
@@ -28,11 +27,6 @@
             "name": "com.unity.entities",
             "expression": "0.5.1",
             "define": "VERSION_NEWER_THAN_0_5_1"
-        },
-        {
-            "name": "com.unity.render-pipelines.high-definition",
-            "expression": "7.1",
-            "define": "VERSION_NEWER_THAN_7_1"
         }
     ],
     "noEngineReferences": false

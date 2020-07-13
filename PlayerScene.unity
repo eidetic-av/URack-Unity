@@ -151,10 +151,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 441482e8936e35048a1dffac814e3ef8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Profile: {fileID: 0}
-  m_StaticLightingSkyUniqueID: 0
-  m_SkySettings: {fileID: 0}
-  m_SkySettingsFromProfile: {fileID: 0}
 --- !u!4 &313761475
 Transform:
   m_ObjectHideFlags: 1
@@ -179,7 +175,7 @@ PrefabInstance:
     - target: {fileID: 4582262570004601649, guid: 0413742282fc641c1bdb728c1c07a831,
         type: 3}
       propertyPath: m_Name
-      value: URackServer
+      value: Server
       objectReference: {fileID: 0}
     - target: {fileID: 4582262570004601651, guid: 0413742282fc641c1bdb728c1c07a831,
         type: 3}
@@ -303,7 +299,7 @@ PrefabInstance:
     - target: {fileID: 2288023935162301133, guid: d410449a730c36243846e46962afae19,
         type: 3}
       propertyPath: m_Name
-      value: URackDefaultCamera
+      value: DefaultCamera
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d410449a730c36243846e46962afae19, type: 3}
