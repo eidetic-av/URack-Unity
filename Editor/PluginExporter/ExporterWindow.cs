@@ -190,7 +190,15 @@ namespace Eidetic.URack.Editor
             BuildPipeline.BuildAssetBundles(outputDirPath, BuildAssetBundleOptions.None,
                 (BuildTarget) System.Enum.Parse(typeof(BuildTarget), TargetPlatform));
 
-            UnityEngine.Debug.Log("Asset bundle exported.");
+            // remove extra files built from asset bundle export
+            foreach (var filePath in Directory.GetFiles(outputDirPath))
+            {
+                var fileName = Path.GetFileName(filePath);
+                if (fileName.Contains(".manifest")) File.Delete(filePath);
+                else if (fileName == pluginName) File.Delete(filePath);
+            }
+
+            UnityEngine.Debug.Log("Asset bundles exported.");
 
             // change proxies back to original components now bundle is exported
             foreach (var prefabPath in proxiedPrefabs)
