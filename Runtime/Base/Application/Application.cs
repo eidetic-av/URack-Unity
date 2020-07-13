@@ -61,12 +61,11 @@ namespace Eidetic.URack
                 var assembly = Assembly.LoadFrom(dll);
                 var pluginName = Path.GetFileNameWithoutExtension(dll);
                 // Get each URack module included in the assembly
-                foreach (var uModule in assembly.GetTypes()
-                        .Where(t => t.BaseType == typeof(UModule) || t.BaseType == typeof(VFXModule)))
+                foreach (var module in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(UModule))))
                 {
-                    var moduleName = uModule.Name;
+                    var moduleName = module.Name;
                     // Store the module's type in the dictionary
-                    PluginModules.Add(moduleName, uModule);
+                    PluginModules.Add(moduleName, module);
                     // And load its assets if we find any
                     var assetBundlePath = Directory
                         .GetFiles(pluginPath, moduleName.ToLower() + "assets").FirstOrDefault();
