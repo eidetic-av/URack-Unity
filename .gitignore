@@ -34,21 +34,6 @@ ExportedObj/
 *.opendb
 *.VC.db
 
-# Ignore all 'folder' meta files (that is 'meta's with no extension)
-# This also applies to files without extention like 'LICENSE'
-*.meta
-# And track all 'file' meta files
-!*.*.meta
-# Asset meta data should only be ignored when the corresponding asset is also ignored
-!/[Aa]ssets/**/*.*.meta
-
-# Meta files we don't need tracked at all (Unity3d and documentation meta files)
-*.pidb.meta
-*.pdb.meta
-*.mdb.meta
-*.org.meta
-*.md.meta
-
 # Unity3D generated file on crash reports
 sysinfo.txt
 
@@ -63,7 +48,9 @@ crashlytics-build.properties
 
 # Ignore ply sequences for now
 *.ply
-*.ply.meta
+
+# and org files
+*.org*
 
 # Ignore built dll
 URack-Unity.dll
