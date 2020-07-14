@@ -104,10 +104,16 @@ namespace Eidetic.URack.Editor
             // reference UnityEngine libs, mono libs, and package dlls used in current project
             var editorPath = Path.GetDirectoryName(EditorApplication.applicationPath);
 
+#if UNITY_EDITOR_OSX
+            var unityLibsPath = editorPath + "/Unity.app/Contents/Managed/UnityEngine/";
+            var monoLibsPath = editorPath + "/Unity.app/Contents/MonoBleedingEdge/lib/mono/unity/";
+
+#else
             var unityLibsPath = editorPath + "/Data/Managed/UnityEngine/";
             var monoLibsPath = editorPath + "/Data/MonoBleedingEdge/lib/mono/unity/";
+#endif
             var packageLibPath = UnityEngine.Application.dataPath.Replace("Assets", "/Library/ScriptAssemblies/");
-
+            
             compilerArgs += " -lib:\"" + unityLibsPath + "\",\"" + packageLibPath + "\"";
 
             foreach (var unityLib in Directory.GetFiles(unityLibsPath))
@@ -123,9 +129,12 @@ namespace Eidetic.URack.Editor
 
             // get mono compiler from Unity install
             var compilerPath = Path.GetDirectoryName(EditorApplication.applicationPath);
+#if UNITY_EDITOR_OSX
+            compilerPath += "/Unity.app/Contents/MonoBleedingEdge/bin/mcs";
+#elif UNITY_EDITOR_WIN
+            compilerPath += "/Data/MonoBleedingEdge/bin/mcs.bat";
+#else
             compilerPath += "/Data/MonoBleedingEdge/bin/mcs";
-#if UNITY_EDITOR_WIN
-            compilerPath += ".bat";
 #endif
             var compilerStartInfo = new ProcessStartInfo();
             compilerStartInfo.FileName = compilerPath;
