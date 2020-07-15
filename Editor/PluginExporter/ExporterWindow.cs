@@ -113,7 +113,7 @@ namespace Eidetic.URack.Editor
             var monoLibsPath = editorPath + "/Data/MonoBleedingEdge/lib/mono/unity/";
 #endif
             var packageLibPath = UnityEngine.Application.dataPath.Replace("Assets", "/Library/ScriptAssemblies/");
-            
+
             compilerArgs += " -lib:\"" + unityLibsPath + "\",\"" + packageLibPath + "\"";
 
             foreach (var unityLib in Directory.GetFiles(unityLibsPath))
@@ -197,7 +197,7 @@ namespace Eidetic.URack.Editor
 
             // build asset bundles
             BuildPipeline.BuildAssetBundles(outputDirPath, BuildAssetBundleOptions.None,
-                (BuildTarget) System.Enum.Parse(typeof(BuildTarget), TargetPlatform));
+                (BuildTarget)System.Enum.Parse(typeof(BuildTarget), TargetPlatform));
 
             // remove extra files built from asset bundle export
             foreach (var filePath in Directory.GetFiles(outputDirPath))
@@ -245,21 +245,16 @@ namespace Eidetic.URack.Editor
             PlayerPrefs.SetString("URackExporter_TargetPlatform_" + ProjectName, TargetPlatform);
         }
 
-        static System.Type moduleManager;
-        static System.Type ModuleManager => moduleManager ??
-            (moduleManager = System.Type.GetType("UnityEditor.Modules.ModuleManager,UnityEditor.dll"));
-        static MethodInfo supportLoadedMethod;
-        static MethodInfo SupportLoadedMethod => supportLoadedMethod ??
-            (supportLoadedMethod = ModuleManager.GetMethod("IsPlatformSupportLoaded",
-                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
-        static MethodInfo buildTargetStringMethod;
-        static MethodInfo BuildTargetStringMethod => buildTargetStringMethod ??
-            (buildTargetStringMethod = ModuleManager.GetMethod("GetTargetStringFromBuildTarget",
-                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
-        static bool CheckPlatformSupport(BuildTarget buildTarget) => (bool) SupportLoadedMethod.Invoke(null, new object[]
+        static bool CheckPlatformSupport(BuildTarget buildTarget)
         {
-            (string) BuildTargetStringMethod.Invoke(null, new object[] { buildTarget })
-        });
+            var moduleManager = System.Type.GetType("UnityEditor.Modules.ModuleManager,UnityEditor.dll");
+            var supportLoadedMethod = moduleManager.GetMethod("IsPlatformSupportLoaded",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var buildTargetStringMethod = moduleManager.GetMethod("GetTargetStringFromBuildTarget",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            return (bool) supportLoadedMethod.Invoke(null, new object[] {
+                (string) buildTargetStringMethod.Invoke(null, new object[] { buildTarget })});
+        }
         static string[] GetAvailablePlatforms()
         {
             var availablePlatforms = new List<string>();
