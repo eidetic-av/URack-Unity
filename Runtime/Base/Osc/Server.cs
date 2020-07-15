@@ -15,7 +15,12 @@ namespace Eidetic.URack.Osc
         public const int ListenPort = 54321;
         public const int SendPort = 54320;
 
-        public static Server Instance;
+        public static Server Instance { get; private set; }
+        public static void CreateInstance()
+        {
+            Instance = new GameObject("URackServer").AddComponent<Server>();
+        }
+
         public static string Ip;
         public static void Send<T>(string address, T value) => Instance.SendQueue.Enqueue((address, typeof(T), value));
 
@@ -32,13 +37,12 @@ namespace Eidetic.URack.Osc
         Socket Socket;
         Osc.Encoder Encoder = new Osc.Encoder();
 
-        Queue < (string, Type, object) > SendQueue = new Queue < (string, Type, object) > ();
+        Queue<(string, Type, object)> SendQueue = new Queue<(string, Type, object)>();
 
         Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>();
 
         void Start()
         {
-            Instance = this;
             // store this machine IP(v4) address
             Server.Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList
                 .First(ip => ip.AddressFamily.ToString() == ProtocolFamily.InterNetwork.ToString())
@@ -117,10 +121,10 @@ namespace Eidetic.URack.Osc
                 switch (address[0])
                 {
                     case "Add":
-                        UModule.Create((string) msg.data[0], (int) msg.data[1]);
+                        UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Remove":
-                        UModule.Remove((int) msg.data[1]);
+                        UModule.Remove((int)msg.data[1]);
                         // remove all references to the properties in the Target list
                         // so that the osc address doesn't point to destroyed references
                         var moduleAddress = msg.data[0] + "/" + msg.data[1];
@@ -130,13 +134,13 @@ namespace Eidetic.URack.Osc
                             SceneTargets.Remove(removeTarget);
                         break;
                     case "Reset":
-                        UModule.Remove((int) msg.data[1]);
+                        UModule.Remove((int)msg.data[1]);
                         var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
                         var resetRemoveTargets = SceneTargets.Keys
                             .Where(key => key.Contains(resetModuleAddress)).ToList();
                         foreach (var removeTarget in resetRemoveTargets)
                             SceneTargets.Remove(removeTarget);
-                        UModule.Create((string) msg.data[0], (int) msg.data[1]);
+                        UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
                         TargetProperty target;
@@ -166,10 +170,10 @@ namespace Eidetic.URack.Osc
                         if (address[3] == "Connect")
                         {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
-                            var outputGetMethod = moduleInstance.GetType().GetProperty((string) msg.data[0]).GetGetMethod();
+                            var outputGetMethod = moduleInstance.GetType().GetProperty((string)msg.data[0]).GetGetMethod();
                             var outputGetter = new UModule.Getter(outputGetMethod);
-                            var connectionInstance = UModule.Instances[(int) msg.data[1]];
-                            var inputSetMethod = connectionInstance.GetType().GetProperty((string) msg.data[2]).GetSetMethod();
+                            var connectionInstance = UModule.Instances[(int)msg.data[1]];
+                            var inputSetMethod = connectionInstance.GetType().GetProperty((string)msg.data[2]).GetSetMethod();
                             var inputSetter = new UModule.Setter(connectionInstance, inputSetMethod);
                             if (!moduleInstance.Connections.ContainsKey(outputGetter))
                                 moduleInstance.Connections.Add(outputGetter, new List<UModule.Setter>() { inputSetter });
@@ -180,9 +184,9 @@ namespace Eidetic.URack.Osc
                         else if (address[3] == "Disconnect")
                         {
                             var moduleInstance = UModule.Instances[int.Parse(address[2])];
-                            var outputAddress = (string) msg.data[0];
-                            var connectionInstance = UModule.Instances[(int) msg.data[1]];
-                            var connectionAddress = (string) msg.data[2];
+                            var outputAddress = (string)msg.data[0];
+                            var connectionInstance = UModule.Instances[(int)msg.data[1]];
+                            var connectionAddress = (string)msg.data[2];
                             var outputGetMethod = moduleInstance.GetType().GetProperty(outputAddress).GetGetMethod();
                             var outputGetter = new UModule.Getter(outputGetMethod);
                             var connectionSetMethod = connectionInstance.GetType().GetProperty(connectionAddress).GetSetMethod();
@@ -203,19 +207,19 @@ namespace Eidetic.URack.Osc
                         {
                             var visualEffect = target.VisualEffect;
                             if (visualEffect.HasFloat(address[3]))
-                                visualEffect.SetFloat(address[3], (float) msg.data[0]);
+                                visualEffect.SetFloat(address[3], (float)msg.data[0]);
                             else if (visualEffect.HasInt(address[3]))
-                                visualEffect.SetInt(address[3], (int) msg.data[0]);
+                                visualEffect.SetInt(address[3], (int)msg.data[0]);
                             else if (visualEffect.HasBool(address[3]))
-                                visualEffect.SetBool(address[3], (float) msg.data[0] > 0);
+                                visualEffect.SetBool(address[3], (float)msg.data[0] > 0);
                         }
                         // setting a property value
                         else if (target.Property.PropertyType == typeof(float))
-                            target.Property.SetValue(target.Instance, (float) msg.data[0]);
+                            target.Property.SetValue(target.Instance, (float)msg.data[0]);
                         else if (target.Property.PropertyType == typeof(int))
-                            target.Property.SetValue(target.Instance, Mathf.RoundToInt((float) msg.data[0]));
+                            target.Property.SetValue(target.Instance, Mathf.RoundToInt((float)msg.data[0]));
                         else if (target.Property.PropertyType == typeof(bool))
-                            target.Property.SetValue(target.Instance, (float) msg.data[0] > 0);
+                            target.Property.SetValue(target.Instance, (float)msg.data[0] > 0);
                         else if (target.Property.PropertyType == typeof(string))
                             target.Property.SetValue(target.Instance, msg.data[0]);
                         break;
@@ -232,7 +236,7 @@ namespace Eidetic.URack.Osc
                     Encoder.Clear();
                     Encoder.Append("/QueryConnections");
                     Encoder.Append(",s");
-                    Encoder.Append("Instance" + (string) item.Item3);
+                    Encoder.Append("Instance" + (string)item.Item3);
 
                     foreach (var endpoint in Clients.Values)
                         Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
@@ -252,17 +256,17 @@ namespace Eidetic.URack.Osc
                 if (type == typeof(float))
                 {
                     Encoder.Append(",f");
-                    Encoder.Append((float) value);
+                    Encoder.Append((float)value);
                 }
                 else if (type == typeof(int))
                 {
                     Encoder.Append(",i");
-                    Encoder.Append((int) value);
+                    Encoder.Append((int)value);
                 }
                 else if (type == typeof(string))
                 {
                     Encoder.Append(",s");
-                    Encoder.Append((string) value);
+                    Encoder.Append((string)value);
                 }
 
                 foreach (var endpoint in Clients.Values)
