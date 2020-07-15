@@ -32,7 +32,7 @@ namespace Eidetic.URack
 #if UNITY_EDITOR
             // If we're in the editor, try looking for the module in unpackaged code
             Assembly scriptingAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                .SingleOrDefault(a => a.FullName.Contains("Assembly-CSharp"));
+                .SingleOrDefault(a => a.FullName.Contains("Assembly-CSharp,"));
             moduleType = scriptingAssembly?.GetTypes()
                 .SingleOrDefault(t => t.Name == moduleName);
 #endif
