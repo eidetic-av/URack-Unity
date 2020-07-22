@@ -12,6 +12,7 @@ To get set-up for development within Unity:
 
 1. Create (or open) a Unity project that uses the Universal Render Pipeline.
 2. Import this package into your project by adding this git repository to the Unity Package Manager.
+3. Change your player settings to use the .NET 4.x runtime.
 
 To create a new module:
 
