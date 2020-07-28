@@ -12,8 +12,8 @@ namespace Eidetic.URack
     [VFXBinder("URack/PointCloud Binder")]
     public class PointCloudBinder : VFXBinderBase
     {
-        [SerializeField] int MaxTextureSize = 8192;
-        [SerializeField] int JobBatchSize = 2048;
+        [SerializeField] int MaxTextureSize = 4096;
+        [SerializeField] int JobBatchSize = 4096;
 
         [VFXPropertyBinding("UnityEngine.Texture2D"), FormerlySerializedAs("Positions")]
         public ExposedProperty PositionsProperty = "Positions";
@@ -21,11 +21,15 @@ namespace Eidetic.URack
         [VFXPropertyBinding("UnityEngine.Texture2D"), FormerlySerializedAs("Colors")]
         public ExposedProperty ColorsProperty = "Colors";
 
+        [VFXPropertyBinding("int"), FormerlySerializedAs("PointCount")]
+        public ExposedProperty PointCountProperty = "PointCount";
+
         PointCloud pointCloud;
         public PointCloud PointCloud
         {
             get => pointCloud;
-            set {
+            set
+            {
                 pointCloud = value;
                 UpdateMaps = true;
             }
@@ -35,40 +39,59 @@ namespace Eidetic.URack
         Texture2D ColorMap;
         bool UpdateMaps;
 
-        public override void UpdateBinding(VisualEffect visualEffect) {
+        public override void UpdateBinding(VisualEffect visualEffect)
+        {
             if (!UpdateMaps) return;
+
+            if (PointCloud.UsingTextureMaps)
+            {
+                visualEffect.SetTexture(PositionsProperty, PointCloud.PositionMap);
+                visualEffect.SetTexture(ColorsProperty, PointCloud.ColorMap);
+                var texturePixelCount = PointCloud.PositionMap.width * PointCloud.PositionMap.height;
+                visualEffect.SetInt(PointCountProperty, texturePixelCount);
+                UpdateMaps = false;
+                return;
+            }
 
             int count = PointCloud.PointCount;
             if (count == 0) return;
 
             int width = MaxTextureSize;
-            int height = Mathf.CeilToInt( count / (float) MaxTextureSize);
+            int height = Mathf.CeilToInt(count / (float) MaxTextureSize);
             var pixelCount = width * height;
 
             // If the textures are undefined, create them
             // and if they are a different size, resize them
-            if (PositionMap == null) {
-                PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
-                    name = gameObject.name + "-PositionMap",
-                    filterMode = FilterMode.Point,
-                    wrapMode = TextureWrapMode.Repeat
+            if (PositionMap == null)
+            {
+                PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
+                {
+                name = gameObject.name + "-PositionMap",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Repeat
                 };
             }
-            else if (PositionMap.height != height) {
+            else if (PositionMap.height != height)
+            {
                 PositionMap.Resize(width, height, TextureFormat.RGBAFloat, false);
             }
 
-            if (ColorMap == null) {
-                ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false) {
-                    name = gameObject.name + "-ColorMap",
-                    filterMode = FilterMode.Point,
-                    wrapMode = TextureWrapMode.Repeat
+            if (ColorMap == null)
+            {
+                ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
+                {
+                name = gameObject.name + "-ColorMap",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Repeat
                 };
-            } else if (ColorMap.height != height) {
+            }
+            else if (ColorMap.height != height)
+            {
                 ColorMap.Resize(width, height, TextureFormat.RGBAFloat, false);
             }
 
-            var job = new UpdateJob() {
+            var job = new UpdateJob()
+            {
                 points = new NativeArray<PointCloud.Point>(PointCloud.Points, Allocator.TempJob),
                 positionMap = new NativeArray<Color>(pixelCount, Allocator.TempJob),
                 colorMap = new NativeArray<Color>(pixelCount, Allocator.TempJob)
@@ -93,20 +116,25 @@ namespace Eidetic.URack
         }
 
         [BurstCompile]
-        public struct UpdateJob : IJobParallelFor {
+        public struct UpdateJob : IJobParallelFor
+        {
             public NativeArray<PointCloud.Point> points;
             public NativeArray<Color> positionMap;
             public NativeArray<Color> colorMap;
-            public void Execute(int i) {
+            public void Execute(int i)
+            {
                 // transfer the point if it exists
-                if (i < points.Length) {
+                if (i < points.Length)
+                {
                     var point = points[i];
-                    positionMap[i] = new Color() {
+                    positionMap[i] = new Color()
+                    {
                         r = point.Position.x,
                         g = point.Position.y,
                         b = point.Position.z
                     };
-                    colorMap[i] = new Color() {
+                    colorMap[i] = new Color()
+                    {
                         r = point.Color.r,
                         g = point.Color.g,
                         b = point.Color.b
@@ -116,7 +144,8 @@ namespace Eidetic.URack
                 // fill the remaining pixels of the texture
                 // with a dummy value
                 // transparent and out of the way
-                else {
+                else
+                {
                     positionMap[i] = Color.white * 5000f;
                     colorMap[i] = Color.clear;
                 }
