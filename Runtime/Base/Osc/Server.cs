@@ -31,7 +31,7 @@ namespace Eidetic.URack.Osc
         IPEndPoint ListenEndPoint;
         Osc.Parser Parser = new Osc.Parser();
 
-        Dictionary<string, TargetProperty> SceneTargets = new Dictionary<string, TargetProperty>();
+        Dictionary<string, PropertyTarget> SceneTargets = new Dictionary<string, PropertyTarget>();
 
         // sending
         Socket Socket;
@@ -40,6 +40,14 @@ namespace Eidetic.URack.Osc
         Queue<(string, Type, object)> SendQueue = new Queue<(string, Type, object)>();
 
         Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>();
+
+        // Events
+        public static event Action<UModule> OnCreateModule = (moduleInstance) => { };
+        public static event Action<UModule, bool> OnModuleSetActive = (moduleInstance, active) => { };
+        public static event Action<PropertyTarget, dynamic> OnSetProperty = (target, value) =>
+        {
+            if (target.Property.Name == "Active") OnModuleSetActive(target.Instance, value);
+        };
 
         void Start()
         {
@@ -121,7 +129,8 @@ namespace Eidetic.URack.Osc
                 switch (address[0])
                 {
                     case "Add":
-                        UModule.Create((string)msg.data[0], (int)msg.data[1]);
+                        var instance = UModule.Create((string)msg.data[0], (int)msg.data[1]);
+                        OnCreateModule(instance);
                         break;
                     case "Remove":
                         UModule.Remove((int)msg.data[1]);
@@ -143,7 +152,7 @@ namespace Eidetic.URack.Osc
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
-                        TargetProperty target;
+                        PropertyTarget target;
                         if (SceneTargets.ContainsKey(msg.path)) target = SceneTargets[msg.path];
                         else
                         {
@@ -153,16 +162,16 @@ namespace Eidetic.URack.Osc
                             int instanceId = int.Parse(address[2]);
                             UModule moduleInstance = UModule.Instances.ContainsKey(instanceId) ?
                                 UModule.Instances[instanceId] : UModule.Create(address[1], instanceId);
-                            var targetProperty = moduleInstance.GetType()
+                            var propertyInfo = moduleInstance.GetType()
                                 .GetProperty(address[3]);
 
                             var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
                             if (isVFX)
                             {
                                 var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
-                                target = new TargetProperty(moduleInstance, targetProperty, visualEffect);
+                                target = new PropertyTarget(moduleInstance, propertyInfo, visualEffect);
                             }
-                            else target = new TargetProperty(moduleInstance, targetProperty);
+                            else target = new PropertyTarget(moduleInstance, propertyInfo);
 
                             SceneTargets[msg.path] = target;
                         }
@@ -214,14 +223,12 @@ namespace Eidetic.URack.Osc
                                 visualEffect.SetBool(address[3], (float)msg.data[0] > 0);
                         }
                         // setting a property value
-                        else if (target.Property.PropertyType == typeof(float))
-                            target.Property.SetValue(target.Instance, (float)msg.data[0]);
-                        else if (target.Property.PropertyType == typeof(int))
-                            target.Property.SetValue(target.Instance, Mathf.RoundToInt((float)msg.data[0]));
-                        else if (target.Property.PropertyType == typeof(bool))
-                            target.Property.SetValue(target.Instance, (float)msg.data[0] > 0);
-                        else if (target.Property.PropertyType == typeof(string))
-                            target.Property.SetValue(target.Instance, msg.data[0]);
+                        else
+                        {
+                            dynamic newValue = Convert.ChangeType(msg.data[0], target.Property.PropertyType);
+                            target.Property.SetValue(target.Instance, newValue);
+                            OnSetProperty(target, newValue);
+                        }
                         break;
                 }
             }
@@ -275,13 +282,13 @@ namespace Eidetic.URack.Osc
             }
         }
 
-        struct TargetProperty
+        public struct PropertyTarget
         {
             public UModule Instance;
             public PropertyInfo Property;
             public bool IsVFX => (VisualEffect != null);
             public VisualEffect VisualEffect;
-            public TargetProperty(UModule instance, PropertyInfo property, VisualEffect visualEffect = null)
+            public PropertyTarget(UModule instance, PropertyInfo property, VisualEffect visualEffect = null)
             {
                 Instance = instance;
                 Property = property;
