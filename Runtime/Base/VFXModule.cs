@@ -28,13 +28,19 @@ namespace Eidetic.URack
         public void Exit() => gameObject?.SetActive(false);
 
         [Input]
-        virtual public PointCloud PointCloudInput
+        public PointCloud PointCloudInput
         {
             set
             {
+                if (PointCloudBinder.PointCloud != null &&
+                    PointCloudBinder.PointCloud == value &&
+                    VisualEffect.GetInt("PointCount") != 0) return;
+                VisualEffect.SetInt("PointCount", value.PointCount);
+                OnSetPointCloud(value);
                 PointCloudBinder.PointCloud = value;
-                if (VisualEffect != null) VisualEffect.SetInt("PointCount", value.PointCount);
             }
         }
+
+        virtual public void OnSetPointCloud(PointCloud value) { }
     }
 }
