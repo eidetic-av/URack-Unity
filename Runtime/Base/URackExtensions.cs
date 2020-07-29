@@ -76,6 +76,12 @@ namespace Eidetic.URack
             input + translation;
 
         /// <summary>
+        /// Convert a Vector3 of Euler angles into a Vector3 of Radians.
+        /// </summary>
+        public static Vector3 ToRadians(this Vector3 input) =>
+            new Vector3((input.x / 360) * (2 * Mathf.PI), (input.y / 360) * (2 * Mathf.PI), (input.z / 360) * (2 * Mathf.PI));
+
+        /// <summary>
         /// Return a Vector3 scaled by another Vector3.
         /// </summary>
         public static Vector3 ScaleBy(this Vector3 input, Vector3 scale) =>
@@ -94,7 +100,7 @@ namespace Eidetic.URack
         /// </summary>
         public static List<Type> GetAllDerivedTypes(this AppDomain appDomain, Type type) =>
             appDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(t => t.IsSubclassOf(type)).ToList();
-    
+
         /// <summary>
         /// Check if a path is of a valid texture file format.
         /// </summary>
