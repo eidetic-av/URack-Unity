@@ -77,25 +77,39 @@ namespace Eidetic.URack
 
         public void SetPositionMap(Texture src)
         {
-            Destroy(PositionMap);
-            PositionMap = new Texture2D(src.width, src.height, TextureFormat.RGBAFloat, false)
+            if (PositionMap == null)
             {
-                name = "PositionMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-            };
+                PositionMap = new Texture2D(src.width, src.height, TextureFormat.RGBAFloat, false)
+                {
+                    name = "PositionMap",
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Repeat
+                };
+            }
+            else if (PositionMap.height != src.height)
+            {
+                PositionMap.Resize(src.width, src.height);
+                PositionMap.Apply();
+            }
             Graphics.CopyTexture(src, PositionMap);
         }
 
         public void SetColorMap(Texture src)
         {
-            Destroy(ColorMap);
-            ColorMap = new Texture2D(src.width, src.height, TextureFormat.RGBAFloat, false)
+            if (ColorMap == null)
             {
-                name = "ColorMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-            };
+                ColorMap = new Texture2D(src.width, src.height, TextureFormat.RGBAFloat, false)
+                {
+                    name = "ColorMap",
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Repeat
+                };
+            }
+            else if (ColorMap.height != src.height)
+            {
+                ColorMap.Resize(src.width, src.height);
+                ColorMap.Apply();
+            }
             Graphics.CopyTexture(src, ColorMap);
         }
 
