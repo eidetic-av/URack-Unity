@@ -43,76 +43,74 @@ namespace Eidetic.URack
         {
             if (!UpdateMaps) return;
 
-            if (PointCloud.UsingTextureMaps)
-            {
-                visualEffect.SetTexture(PositionsProperty, PointCloud.PositionMap);
-                visualEffect.SetTexture(ColorsProperty, PointCloud.ColorMap);
-                var texturePixelCount = PointCloud.PositionMap.width * PointCloud.PositionMap.height;
-                visualEffect.SetInt(PointCountProperty, texturePixelCount);
-                UpdateMaps = false;
-                return;
-            }
-
-            int count = PointCloud.PointCount;
-            if (count == 0) return;
-
-            int width = MaxTextureSize;
-            int height = Mathf.CeilToInt(count / (float) MaxTextureSize);
-            var pixelCount = width * height;
-
-            // If the textures are undefined, create them
-            // and if they are a different size, resize them
-            if (PositionMap == null)
-            {
-                PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
-                {
-                name = gameObject.name + "-PositionMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-                };
-            }
-            else if (PositionMap.height != height)
-            {
-                PositionMap.Resize(width, height, TextureFormat.RGBAFloat, false);
-            }
-
-            if (ColorMap == null)
-            {
-                ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
-                {
-                name = gameObject.name + "-ColorMap",
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Repeat
-                };
-            }
-            else if (ColorMap.height != height)
-            {
-                ColorMap.Resize(width, height, TextureFormat.RGBAFloat, false);
-            }
-
-            var job = new UpdateJob()
-            {
-                points = new NativeArray<PointCloud.Point>(PointCloud.Points, Allocator.TempJob),
-                positionMap = new NativeArray<Color>(pixelCount, Allocator.TempJob),
-                colorMap = new NativeArray<Color>(pixelCount, Allocator.TempJob)
-            };
-
-            job.Schedule(pixelCount, JobBatchSize).Complete();
-
-            PositionMap.SetPixelData(job.positionMap, 0);
-            PositionMap.Apply();
-
-            ColorMap.SetPixelData(job.colorMap, 0);
-            ColorMap.Apply();
-
-            job.points.Dispose();
-            job.positionMap.Dispose();
-            job.colorMap.Dispose();
-
-            visualEffect.SetTexture(PositionsProperty, PositionMap);
-            visualEffect.SetTexture(ColorsProperty, ColorMap);
-
+            if (PointCloud.PositionMap == null) return;
+            visualEffect.SetTexture(PositionsProperty, PointCloud.PositionMap);
+            visualEffect.SetTexture(ColorsProperty, PointCloud.ColorMap);
+            var texturePixelCount = PointCloud.PositionMap.width * PointCloud.PositionMap.height;
+            visualEffect.SetInt(PointCountProperty, texturePixelCount);
             UpdateMaps = false;
+            return;
+
+            // int count = PointCloud.PointCount;
+            // if (count == 0) return;
+
+            // int width = MaxTextureSize;
+            // int height = Mathf.CeilToInt(count / (float) MaxTextureSize);
+            // var pixelCount = width * height;
+
+            // // If the textures are undefined, create them
+            // // and if they are a different size, resize them
+            // if (PositionMap == null)
+            // {
+            //     PositionMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
+            //     {
+            //     name = gameObject.name + "-PositionMap",
+            //     filterMode = FilterMode.Point,
+            //     wrapMode = TextureWrapMode.Repeat
+            //     };
+            // }
+            // else if (PositionMap.height != height)
+            // {
+            //     PositionMap.Resize(width, height, TextureFormat.RGBAFloat, false);
+            // }
+
+            // if (ColorMap == null)
+            // {
+            //     ColorMap = new Texture2D(width, height, TextureFormat.RGBAFloat, false)
+            //     {
+            //     name = gameObject.name + "-ColorMap",
+            //     filterMode = FilterMode.Point,
+            //     wrapMode = TextureWrapMode.Repeat
+            //     };
+            // }
+            // else if (ColorMap.height != height)
+            // {
+            //     ColorMap.Resize(width, height, TextureFormat.RGBAFloat, false);
+            // }
+
+            // var job = new UpdateJob()
+            // {
+            //     points = new NativeArray<PointCloud.Point>(PointCloud.Points, Allocator.TempJob),
+            //     positionMap = new NativeArray<Color>(pixelCount, Allocator.TempJob),
+            //     colorMap = new NativeArray<Color>(pixelCount, Allocator.TempJob)
+            // };
+
+            // job.Schedule(pixelCount, JobBatchSize).Complete();
+
+            // PositionMap.SetPixelData(job.positionMap, 0);
+            // PositionMap.Apply();
+
+            // ColorMap.SetPixelData(job.colorMap, 0);
+            // ColorMap.Apply();
+
+            // job.points.Dispose();
+            // job.positionMap.Dispose();
+            // job.colorMap.Dispose();
+
+            // visualEffect.SetTexture(PositionsProperty, PositionMap);
+            // visualEffect.SetTexture(ColorsProperty, ColorMap);
+
+            // UpdateMaps = false;
         }
 
         [BurstCompile]

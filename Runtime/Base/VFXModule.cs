@@ -32,10 +32,6 @@ namespace Eidetic.URack
         {
             set
             {
-                if (PointCloudBinder.PointCloud != null &&
-                    PointCloudBinder.PointCloud == value &&
-                    VisualEffect.GetInt("PointCount") != 0) return;
-                VisualEffect.SetInt("PointCount", value.PointCount);
                 OnSetPointCloud(value);
                 PointCloudBinder.PointCloud = value;
             }
