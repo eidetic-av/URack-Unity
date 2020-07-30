@@ -134,5 +134,15 @@ namespace Eidetic.URack
 
             return false;
         }
+        /// <summary>
+        /// Check if a path is of a valid point-cloud file format.
+        /// </summary>
+        public static bool IsPointCloudPath(this string filePath)
+        {
+            var path = filePath.ToLower();
+            if (path.EndsWith(".ply"))
+                return true;
+            return false;
+        }
     }
 }
