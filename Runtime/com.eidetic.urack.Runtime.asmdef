@@ -3,7 +3,6 @@
     "references": [
         "Unity.Burst",
         "Unity.Collections",
-        "Unity.Entities",
         "Unity.Jobs",
         "Unity.VisualEffectGraph.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
