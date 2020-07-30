@@ -65,8 +65,10 @@ namespace Eidetic.URack
             createTexturesJob.Schedule(pixelCount, JobBatchSize).Complete();
 
             PositionMap.LoadRawTextureData(createTexturesJob.positionMap);
+            PositionMap.Apply();
             ColorMap.LoadRawTextureData(createTexturesJob.colorMap);
-
+            ColorMap.Apply();
+            
             createTexturesJob.vertices.Dispose();
             createTexturesJob.colors.Dispose();
             createTexturesJob.positionMap.Dispose();
@@ -139,10 +141,9 @@ namespace Eidetic.URack
                 // if it doesn't exist for this index,
                 // fill the remaining pixels of the texture
                 // with a dummy value
-                // transparent and out of the way
                 else
                 {
-                    positionMap[i] = Color.white * 5000f;
+                    positionMap[i] = Color.clear;
                     colorMap[i] = Color.clear;
                 }
             }
