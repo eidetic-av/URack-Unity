@@ -60,29 +60,35 @@ namespace Eidetic.URack
             {
                 // Load assembly
                 var dll = Directory.GetFiles(pluginPath, "*.dll").SingleOrDefault();
-                if (dll == null) continue;
-                var assembly = Assembly.LoadFrom(dll);
-                var pluginName = Path.GetFileNameWithoutExtension(dll);
-                // Get each URack module included in the assembly
-                foreach (var module in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(UModule))))
+                if (dll != null)
                 {
-                    var moduleName = module.Name;
-                    // Store the module's type in the dictionary
-                    PluginModules.Add(moduleName, module);
-                    // And load its asset bundles if we find any
-                    var assetBundlePath = Directory
-                        .GetFiles(pluginPath, moduleName.ToLower() + "assets").FirstOrDefault();
-                    if (assetBundlePath != null)
-                        ModuleAssetBundles.Add(moduleName, AssetBundle.LoadFromFile(assetBundlePath));
+                    var assembly = Assembly.LoadFrom(dll);
+                    var pluginName = Path.GetFileNameWithoutExtension(dll);
+                    // Get each URack module included in the assembly
+                    foreach (var module in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(UModule))))
+                    {
+                        var moduleName = module.Name;
+                        // Store the module's type in the dictionary
+                        PluginModules.Add(moduleName, module);
+                        // And load its asset bundles if we find any
+                        var assetBundlePath = Directory
+                            .GetFiles(pluginPath, moduleName.ToLower() + "assets").FirstOrDefault();
+                        if (assetBundlePath != null)
+                            ModuleAssetBundles.Add(moduleName, AssetBundle.LoadFromFile(assetBundlePath));
+                    }
+                }
+                // Directories in the plugin path appended with Assets contain
+                // collections of runtime-loaded files
+                foreach (var subDirectory in Directory.GetDirectories(pluginPath))
+                {
+                    if (!subDirectory.EndsWith("UserAssets")) continue;
+                    var moduleName = Path.GetFileName(subDirectory).Replace("UserAssets", "");
+                    // add all sub-directories as well as the root Assets directory
+                    var assetDirectories = Directory.GetDirectories(subDirectory)
+                        .Append(subDirectory).ToArray();
+                    ModuleAssetDirectories.Add(moduleName, assetDirectories);
                 }
             }
-            
-            var plugPath = PluginsDirectory + "/URack-Collection-0.0.1/";
-            var modName = "Mirage2x";
-            var moduleAssetDirectory = plugPath + "/" + modName + "Assets";
-            var moduleAssetDirectories = Directory.GetDirectories(moduleAssetDirectory);
-            if (moduleAssetDirectories.Count() != 0)
-                ModuleAssetDirectories.Add(modName, moduleAssetDirectories);
         }
     }
 }
