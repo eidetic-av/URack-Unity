@@ -42,7 +42,8 @@ namespace Eidetic.URack.Osc
         Dictionary<IPAddress, IPEndPoint> Clients = new Dictionary<IPAddress, IPEndPoint>();
 
         // Events
-        public static event Action<UModule> OnCreateModule = (moduleInstance) => { };
+        public static event Action<UModule> OnAddModule = (moduleInstance) => { };
+        public static event Action OnRemoveModule = () => { };
         public static event Action<UModule, bool> OnModuleSetActive = (moduleInstance, active) => { };
         public static event Action<PropertyTarget, dynamic> OnSetProperty = (target, value) =>
         {
@@ -130,10 +131,11 @@ namespace Eidetic.URack.Osc
                 {
                     case "Add":
                         var instance = UModule.Create((string)msg.data[0], (int)msg.data[1]);
-                        OnCreateModule(instance);
+                        OnAddModule(instance);
                         break;
                     case "Remove":
                         UModule.Remove((int)msg.data[1]);
+                        OnRemoveModule();
                         // remove all references to the properties in the Target list
                         // so that the osc address doesn't point to destroyed references
                         var moduleAddress = msg.data[0] + "/" + msg.data[1];
