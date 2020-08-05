@@ -69,6 +69,8 @@ namespace Eidetic.URack
 
             Destroy(positionsRt);
             Destroy(colorsRt);
+            positionsBuffer.Release();
+            colorsBuffer.Release();
 
             return (PositionMap, ColorMap);
         }

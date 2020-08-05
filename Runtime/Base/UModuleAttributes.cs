@@ -45,5 +45,15 @@ namespace Eidetic.URack
                 Smoothing = smoothing;
             }
         }
+
+        [AttributeUsage(AttributeTargets.Method)]
+        public class QueryAttribute : Attribute
+        {
+            readonly Type Type;
+            public QueryAttribute()
+            {
+              Debug.Log("initialised QueryAttribute");
+            }
+        }
     }
 }

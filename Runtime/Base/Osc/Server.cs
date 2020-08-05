@@ -31,7 +31,9 @@ namespace Eidetic.URack.Osc
         IPEndPoint ListenEndPoint;
         Osc.Parser Parser = new Osc.Parser();
 
-        Dictionary<string, PropertyTarget> SceneTargets = new Dictionary<string, PropertyTarget>();
+        Dictionary<string, PropertyTarget> PropertyTargets = new Dictionary<string, PropertyTarget>();
+
+        Dictionary<string, MethodTarget> MethodTargets = new Dictionary<string, MethodTarget>();
 
         // sending
         Socket Socket;
@@ -139,43 +141,57 @@ namespace Eidetic.URack.Osc
                         // remove all references to the properties in the Target list
                         // so that the osc address doesn't point to destroyed references
                         var moduleAddress = msg.data[0] + "/" + msg.data[1];
-                        var removeTargets = SceneTargets.Keys
+                        var removePropertyTargets = PropertyTargets.Keys
                             .Where(key => key.Contains(moduleAddress)).ToList();
-                        foreach (var removeTarget in removeTargets)
-                            SceneTargets.Remove(removeTarget);
+                        foreach (var removePropertyTarget in removePropertyTargets)
+                            PropertyTargets.Remove(removePropertyTarget);
                         break;
                     case "Reset":
                         UModule.Remove((int)msg.data[1]);
                         var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
-                        var resetRemoveTargets = SceneTargets.Keys
+                        var resetRemoveTargets = PropertyTargets.Keys
                             .Where(key => key.Contains(resetModuleAddress)).ToList();
                         foreach (var removeTarget in resetRemoveTargets)
-                            SceneTargets.Remove(removeTarget);
+                            PropertyTargets.Remove(removeTarget);
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
-                        PropertyTarget target;
-                        if (SceneTargets.ContainsKey(msg.path)) target = SceneTargets[msg.path];
+                        dynamic target = null;
+                        if (PropertyTargets.ContainsKey(msg.path)) target = PropertyTargets[msg.path];
+                        else if (MethodTargets.ContainsKey(msg.path)) target = MethodTargets[msg.path];
                         else
                         {
-                            // if the target property doesn't exist in the cache,
-                            // create the reference to the property, and if needed
+                            // if the target doesn't exist in the cache,
+                            // create the reference to the property or method, and if needed
                             // also create an instance of the module we are targetting
                             int instanceId = int.Parse(address[2]);
                             UModule moduleInstance = UModule.Instances.ContainsKey(instanceId) ?
                                 UModule.Instances[instanceId] : UModule.Create(address[1], instanceId);
-                            var propertyInfo = moduleInstance.GetType()
-                                .GetProperty(address[3]);
 
-                            var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
-                            if (isVFX)
+                            var propertyInfo = moduleInstance.GetType().GetProperty(address[3]);
+
+                            if (propertyInfo != null){
+                                var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
+                                if (isVFX)
+                                {
+                                    var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
+                                    target = new PropertyTarget(moduleInstance, propertyInfo, visualEffect);
+                                }
+                                else target = new PropertyTarget(moduleInstance, propertyInfo);
+
+                                PropertyTargets[msg.path] = target;
+                            } else
                             {
-                                var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
-                                target = new PropertyTarget(moduleInstance, propertyInfo, visualEffect);
+                                // if it's not a property, check if it's a method
+                                var methodInfo = moduleInstance.GetType().GetMethod(address[3]);
+                                // check if it's a query
+                                var query = methodInfo.GetCustomAttribute<UModule.QueryAttribute>();
+                                if (query != null)
+                                {
+                                    target = new MethodTarget(moduleInstance, methodInfo, true);
+                                    MethodTargets[msg.path] = target;
+                                }
                             }
-                            else target = new PropertyTarget(moduleInstance, propertyInfo);
-
-                            SceneTargets[msg.path] = target;
                         }
                         // connecting a port
                         if (address[3] == "Connect")
@@ -213,23 +229,41 @@ namespace Eidetic.URack.Osc
                                 if (portConnections.Count == 0) moduleInstance.Connections.Remove(outputGetter);
                             }
                         }
-                        // setting a VFX Blackboard value
-                        else if (target.IsVFX && target.Property == null)
+                        else if (target is PropertyTarget)
                         {
-                            var visualEffect = target.VisualEffect;
-                            if (visualEffect.HasFloat(address[3]))
-                                visualEffect.SetFloat(address[3], (float)msg.data[0]);
-                            else if (visualEffect.HasInt(address[3]))
-                                visualEffect.SetInt(address[3], (int)msg.data[0]);
-                            else if (visualEffect.HasBool(address[3]))
-                                visualEffect.SetBool(address[3], (float)msg.data[0] > 0);
-                        }
-                        // setting a property value
-                        else
+                            // setting a VFX Blackboard value
+                            if (target.IsVFX && target.Property == null)
+                            {
+                                var visualEffect = target.VisualEffect;
+                                if (visualEffect.HasFloat(address[3]))
+                                    visualEffect.SetFloat(address[3], (float)msg.data[0]);
+                                else if (visualEffect.HasInt(address[3]))
+                                    visualEffect.SetInt(address[3], (int)msg.data[0]);
+                                else if (visualEffect.HasBool(address[3]))
+                                    visualEffect.SetBool(address[3], (float)msg.data[0] > 0);
+                            }
+                            // setting a property value
+                            else
+                            {
+                                dynamic newValue = Convert.ChangeType(msg.data[0], target.Property.PropertyType);
+                                target.Property.SetValue(target.Instance, newValue);
+                                OnSetProperty(target, newValue);
+                            }
+                        } else if (target is MethodTarget)
                         {
-                            dynamic newValue = Convert.ChangeType(msg.data[0], target.Property.PropertyType);
-                            target.Property.SetValue(target.Instance, newValue);
-                            OnSetProperty(target, newValue);
+                            // performing a query
+                            if (target.IsQuery)
+                            {
+                                var method = target.Method;
+                                var module = target.Instance;
+                                Type returnType = method.ReturnType;
+                                var result = method.Invoke(module, new object[] {});
+                                // add the result to the send queue
+                                if (returnType == typeof(string[]))
+                                {
+                                    Send<string[]>(module.InstanceAddress + "/" + method.Name, result as string[]);
+                                }
+                            }
                         }
                         break;
                 }
@@ -240,6 +274,7 @@ namespace Eidetic.URack.Osc
             {
                 var item = SendQueue.Dequeue();
 
+                // if its a response to an active connection query
                 if (item.Item1 == "QueryConnections")
                 {
                     Encoder.Clear();
@@ -252,9 +287,25 @@ namespace Eidetic.URack.Osc
 
                     continue;
                 }
+                // if its a response to a query for a list of strings
+                else if (item.Item2 == typeof(string[]))
+                {
+                    var data = item.Item3 as string[];
+                    Encoder.Clear();
+                    Encoder.Append(item.Item1);
+                    Encoder.Append(",i");
+                    Encoder.Append(data.Length);
+                    foreach (var stringResponse in data)
+                    {
+                        Encoder.Append(",s");
+                        Encoder.Append(stringResponse);
+                    }
+                    foreach (var endpoint in Clients.Values)
+                        Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
+                    continue;
+                }
 
                 // if it is not a "Query" message, then it is an output value update
-
                 var address = "/Instance" + item.Item1;
                 var type = item.Item2;
                 var value = item.Item3;
@@ -295,6 +346,19 @@ namespace Eidetic.URack.Osc
                 Instance = instance;
                 Property = property;
                 VisualEffect = visualEffect;
+            }
+        }
+
+        public struct MethodTarget
+        {
+            public UModule Instance;
+            public MethodInfo Method;
+            public bool IsQuery;
+            public MethodTarget(UModule instance, MethodInfo method, bool isQuery)
+            {
+                Instance = instance;
+                Method = method;
+                IsQuery = isQuery;
             }
         }
 
