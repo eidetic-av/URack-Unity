@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using UnityEngine.VFX;
 
@@ -156,9 +157,11 @@ namespace Eidetic.URack.Osc
                         UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
-                        dynamic target = null;
-                        if (PropertyTargets.ContainsKey(msg.path)) target = PropertyTargets[msg.path];
-                        else if (MethodTargets.ContainsKey(msg.path)) target = MethodTargets[msg.path];
+                        PropertyTarget propertyTarget = null;
+                        MethodTarget methodTarget = null;
+
+                        if (PropertyTargets.ContainsKey(msg.path)) propertyTarget = PropertyTargets[msg.path];
+                        else if (MethodTargets.ContainsKey(msg.path)) methodTarget = MethodTargets[msg.path];
                         else
                         {
                             // if the target doesn't exist in the cache,
@@ -175,11 +178,11 @@ namespace Eidetic.URack.Osc
                                 if (isVFX)
                                 {
                                     var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
-                                    target = new PropertyTarget(moduleInstance, propertyInfo, visualEffect);
+                                    propertyTarget = new PropertyTarget(moduleInstance, propertyInfo, visualEffect);
                                 }
-                                else target = new PropertyTarget(moduleInstance, propertyInfo);
+                                else propertyTarget = new PropertyTarget(moduleInstance, propertyInfo);
 
-                                PropertyTargets[msg.path] = target;
+                                PropertyTargets[msg.path] = propertyTarget;
                             } else
                             {
                                 // if it's not a property, check if it's a method
@@ -188,8 +191,8 @@ namespace Eidetic.URack.Osc
                                 var query = methodInfo.GetCustomAttribute<UModule.QueryAttribute>();
                                 if (query != null)
                                 {
-                                    target = new MethodTarget(moduleInstance, methodInfo, true);
-                                    MethodTargets[msg.path] = target;
+                                    methodTarget = new MethodTarget(moduleInstance, methodInfo, true);
+                                    MethodTargets[msg.path] = methodTarget;
                                 }
                             }
                         }
@@ -229,12 +232,12 @@ namespace Eidetic.URack.Osc
                                 if (portConnections.Count == 0) moduleInstance.Connections.Remove(outputGetter);
                             }
                         }
-                        else if (target is PropertyTarget)
+                        else if (propertyTarget != null)
                         {
                             // setting a VFX Blackboard value
-                            if (target.IsVFX && target.Property == null)
+                            if (propertyTarget.IsVFX && propertyTarget.Property == null)
                             {
-                                var visualEffect = target.VisualEffect;
+                                var visualEffect = propertyTarget.VisualEffect;
                                 if (visualEffect.HasFloat(address[3]))
                                     visualEffect.SetFloat(address[3], (float)msg.data[0]);
                                 else if (visualEffect.HasInt(address[3]))
@@ -245,24 +248,24 @@ namespace Eidetic.URack.Osc
                             // setting a property value
                             else
                             {
-                                dynamic newValue = Convert.ChangeType(msg.data[0], target.Property.PropertyType);
-                                target.Property.SetValue(target.Instance, newValue);
-                                OnSetProperty(target, newValue);
+                                dynamic newValue = Convert.ChangeType(msg.data[0], propertyTarget.Property.PropertyType);
+                                propertyTarget.Property.SetValue(propertyTarget.Instance, newValue);
+                                OnSetProperty(propertyTarget, newValue);
                             }
-                        } else if (target is MethodTarget)
+                        }
+                        // invoking a method
+                        else if (methodTarget != null)
                         {
                             // performing a query
-                            if (target.IsQuery)
+                            if (methodTarget.IsQuery)
                             {
-                                var method = target.Method;
-                                var module = target.Instance;
+                                var method = methodTarget.Method;
+                                var module = methodTarget.Instance;
                                 Type returnType = method.ReturnType;
                                 var result = method.Invoke(module, new object[] {});
                                 // add the result to the send queue
                                 if (returnType == typeof(string[]))
-                                {
                                     Send<string[]>(module.InstanceAddress + "/" + method.Name, result as string[]);
-                                }
                             }
                         }
                         break;
@@ -293,13 +296,17 @@ namespace Eidetic.URack.Osc
                     var data = item.Item3 as string[];
                     Encoder.Clear();
                     Encoder.Append(item.Item1);
-                    Encoder.Append(",i");
-                    Encoder.Append(data.Length);
-                    foreach (var stringResponse in data)
+                    Encoder.Append(",s");
+                    var sb = new StringBuilder();
+                    sb.Append(Ip + ";");
+                    for (int v = 0; v < data.Length; v++)
                     {
-                        Encoder.Append(",s");
-                        Encoder.Append(stringResponse);
+                        var stringResponse = data[v];
+                        sb.Append(stringResponse);
+                        sb.Append(";");
                     }
+                    Encoder.Append(sb.ToString());
+                    Debug.Log("send: " + sb.ToString());
                     foreach (var endpoint in Clients.Values)
                         Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
                     continue;
@@ -335,7 +342,7 @@ namespace Eidetic.URack.Osc
             }
         }
 
-        public struct PropertyTarget
+        public class PropertyTarget
         {
             public UModule Instance;
             public PropertyInfo Property;
@@ -349,7 +356,7 @@ namespace Eidetic.URack.Osc
             }
         }
 
-        public struct MethodTarget
+        public class MethodTarget
         {
             public UModule Instance;
             public MethodInfo Method;
