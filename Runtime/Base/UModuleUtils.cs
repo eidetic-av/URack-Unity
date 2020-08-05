@@ -37,6 +37,14 @@ namespace Eidetic.URack
             return null;
         }
 
+        public List<string> GetUserAssetDirectoryNames()
+        {
+            var assetDirectories = Application.ModuleAssetDirectories[ModuleType]
+                .Select(p => Path.GetFileName(Path.GetDirectoryName(p + "/")));
+            var baseDirectory = assetDirectories.Where(d => d == ModuleType + "UserAssets");
+            return assetDirectories.Except(baseDirectory).ToList();
+        }
+
         public List<Texture2D> GetTextureAssets(string searchFilter = "")
         {
             var textures = new List<Texture2D>();
