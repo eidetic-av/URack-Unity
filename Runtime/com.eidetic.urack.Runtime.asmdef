@@ -1,9 +1,6 @@
 {
     "name": "com.Eidetic.URack.Runtime",
     "references": [
-        "Unity.Burst",
-        "Unity.Collections",
-        "Unity.Jobs",
         "Unity.VisualEffectGraph.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.Mathematics",
@@ -16,17 +13,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [
-        {
-            "name": "com.unity.burst",
-            "expression": "1.2",
-            "define": "VERSION_NEWER_THAN_1_2"
-        },
-        {
-            "name": "com.unity.entities",
-            "expression": "0.5.1",
-            "define": "VERSION_NEWER_THAN_0_5_1"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }

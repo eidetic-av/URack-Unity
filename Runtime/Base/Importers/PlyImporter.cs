@@ -329,12 +329,12 @@ namespace Eidetic.URack.Importers
         class DataBody
         {
             public List<Vector3> vertices;
-            public List<Color32> colors;
+            public List<Color> colors;
 
             public DataBody(int vertexCount)
             {
                 vertices = new List<Vector3>(vertexCount);
-                colors = new List<Color32>(vertexCount);
+                colors = new List<Color>(vertexCount);
             }
 
             public void AddPoint(
@@ -343,7 +343,7 @@ namespace Eidetic.URack.Importers
             )
             {
                 vertices.Add(new Vector3(x, y, z));
-                colors.Add(new Color32(r, g, b, a));
+                colors.Add((Color) new Color32(r, g, b, a));
             }
         }
 

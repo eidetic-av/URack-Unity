@@ -1,0 +1,31 @@
+#pragma kernel SetPoints
+
+uint Width;
+uint PointCount;
+
+StructuredBuffer<float3> Positions;
+StructuredBuffer<float4> Colors;
+
+RWTexture2D<float4> PositionMap;
+RWTexture2D<float4> ColorMap;
+
+[numthreads(8,8,1)]
+void SetPoints (uint3 id : SV_DispatchThreadID)
+{
+    // Set dummy values for pixels that are only there
+    // to fill up the texture row.
+
+    if (id.x < PointCount)
+    {
+        uint i = id.x + (id.y * Width);
+        PositionMap[id.xy] = float4(Positions[i].x,
+                                    Positions[i].y,
+                                    Positions[i].z, 0);
+        ColorMap[id.xy] = Colors[i];
+    }
+    else
+    {
+        PositionMap[id.xy] = float4(0, 0, 0, 0);
+        ColorMap[id.xy] = 0;
+    }
+}
