@@ -145,15 +145,22 @@ namespace Eidetic.URack.Osc
                             .Where(key => key.Contains(moduleAddress)).ToList();
                         foreach (var removePropertyTarget in removePropertyTargets)
                             PropertyTargets.Remove(removePropertyTarget);
+                        // do the same for methods
+                        var removeMethodTargets = MethodTargets.Keys
+                            .Where(key => key.Contains(moduleAddress)).ToList();
+                        foreach (var removeMethodTarget in removeMethodTargets)
+                            MethodTargets.Remove(removeMethodTarget);
                         break;
                     case "Reset":
-                        UModule.Remove((int)msg.data[1]);
-                        var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
-                        var resetRemoveTargets = PropertyTargets.Keys
-                            .Where(key => key.Contains(resetModuleAddress)).ToList();
-                        foreach (var removeTarget in resetRemoveTargets)
-                            PropertyTargets.Remove(removeTarget);
-                        UModule.Create((string)msg.data[0], (int)msg.data[1]);
+                        // TODO Not implemented properly
+
+                        // UModule.Remove((int)msg.data[1]);
+                        // var resetModuleAddress = msg.data[0] + "/" + msg.data[1];
+                        // var resetRemoveTargets = PropertyTargets.Keys
+                        //     .Where(key => key.Contains(resetModuleAddress)).ToList();
+                        // foreach (var removeTarget in resetRemoveTargets)
+                        //     PropertyTargets.Remove(removeTarget);
+                        // UModule.Create((string)msg.data[0], (int)msg.data[1]);
                         break;
                     case "Instance":
                         PropertyTarget propertyTarget = null;
