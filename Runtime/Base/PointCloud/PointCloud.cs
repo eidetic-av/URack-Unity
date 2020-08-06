@@ -62,7 +62,9 @@ namespace Eidetic.URack
             SetPointsShader.SetTexture(SetPointsHandle, "PositionMap", positionsRt);
             SetPointsShader.SetTexture(SetPointsHandle, "ColorMap", colorsRt);
 
-            SetPointsShader.Dispatch(SetPointsHandle, width / 8, height / 8, 1);
+            var threadGroupsX = Mathf.CeilToInt(width / 8f);
+            var threadGroupsY = Mathf.CeilToInt(height / 8f);
+            SetPointsShader.Dispatch(SetPointsHandle, threadGroupsX, threadGroupsY, 1);
 
             SetPositionMap(positionsRt);
             SetColorMap(colorsRt);
