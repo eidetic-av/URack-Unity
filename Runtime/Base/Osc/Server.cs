@@ -12,7 +12,6 @@ namespace Eidetic.URack.Osc
 {
     public class Server : MonoBehaviour
     {
-
         public const int ListenPort = 54321;
         public const int SendPort = 54320;
 
@@ -172,9 +171,10 @@ namespace Eidetic.URack.Osc
                                 UModule.Instances[instanceId] : UModule.Create(address[1], instanceId);
 
                             var propertyInfo = moduleInstance.GetType().GetProperty(address[3]);
+                            var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
 
-                            if (propertyInfo != null){
-                                var isVFX = moduleInstance.GetType().IsSubclassOf(typeof(VFXModule));
+                            if (propertyInfo != null || isVFX)
+                            {
                                 if (isVFX)
                                 {
                                     var visualEffect = moduleInstance.gameObject.GetComponent<VisualEffect>();
@@ -187,12 +187,18 @@ namespace Eidetic.URack.Osc
                             {
                                 // if it's not a property, check if it's a method
                                 var methodInfo = moduleInstance.GetType().GetMethod(address[3]);
-                                // check if it's a query
-                                var query = methodInfo.GetCustomAttribute<UModule.QueryAttribute>();
-                                if (query != null)
+                                if (methodInfo != null)
                                 {
-                                    methodTarget = new MethodTarget(moduleInstance, methodInfo, true);
-                                    MethodTargets[msg.path] = methodTarget;
+                                    // check if it's a query
+                                    var query = methodInfo.GetCustomAttribute<UModule.QueryAttribute>();
+                                    // or an action
+                                    var action = methodInfo.GetCustomAttribute<UModule.ActionAttribute>();
+                                    var isQuery = (query != null);
+                                    if (isQuery || action != null)
+                                    {
+                                        methodTarget = new MethodTarget(moduleInstance, methodInfo, isQuery);
+                                        MethodTargets[msg.path] = methodTarget;
+                                    }
                                 }
                             }
                         }
@@ -267,6 +273,13 @@ namespace Eidetic.URack.Osc
                                 if (returnType == typeof(string[]))
                                     Send<string[]>(module.InstanceAddress + "/" + method.Name, result as string[]);
                             }
+                            // performing a action (requires no response)
+                            else
+                            {
+                                var method = methodTarget.Method;
+                                var module = methodTarget.Instance;
+                                method.Invoke(module, new object[] {msg.data[1]});
+                            }
                         }
                         break;
                 }
@@ -306,7 +319,6 @@ namespace Eidetic.URack.Osc
                         sb.Append(";");
                     }
                     Encoder.Append(sb.ToString());
-                    Debug.Log("send: " + sb.ToString());
                     foreach (var endpoint in Clients.Values)
                         Socket.SendTo(Encoder.Buffer, 0, Encoder.Length, SocketFlags.None, endpoint);
                     continue;

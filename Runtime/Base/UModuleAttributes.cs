@@ -49,11 +49,13 @@ namespace Eidetic.URack
         [AttributeUsage(AttributeTargets.Method)]
         public class QueryAttribute : Attribute
         {
-            readonly Type Type;
-            public QueryAttribute()
-            {
-              Debug.Log("initialised QueryAttribute");
-            }
+            public QueryAttribute() { }
+        }
+
+        [AttributeUsage(AttributeTargets.Method)]
+        public class ActionAttribute : Attribute
+        {
+            public ActionAttribute() { }
         }
     }
 }
