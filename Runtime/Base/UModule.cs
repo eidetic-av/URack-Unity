@@ -17,7 +17,18 @@ namespace Eidetic.URack
         public static UModule Create(string moduleName, int id)
         {
             // Load the module's prefab into the scene
-            var gameObject = Instantiate(GetPrefab(moduleName));
+            var prefab = GetPrefab(moduleName);
+            GameObject gameObject;
+            if (prefab != null) gameObject = Instantiate(GetPrefab(moduleName));
+            // if there's no custom prefab, create a new object
+            else
+            {
+                gameObject = new GameObject();
+                // and add the corresponding UModule component
+                Type moduleComponent = Application.PluginModules[moduleName];
+                gameObject.AddComponent(moduleComponent);
+            }
+
             var instanceName = moduleName + "Instance" + id;
             gameObject.name = instanceName;
 

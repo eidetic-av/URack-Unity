@@ -36,6 +36,7 @@ namespace Eidetic.URack
         {
             UnpackPlugins();
             LoadPlugins();
+            LoadPlayerModules();
             Osc.Server.CreateInstance();
         }
 
@@ -89,6 +90,15 @@ namespace Eidetic.URack
                     ModuleAssetDirectories.Add(moduleName, assetDirectories);
                 }
             }
+        }
+
+        static void LoadPlayerModules()
+        {
+            var scriptAssembly =  AppDomain.CurrentDomain.GetAssemblies()
+                .First(a => a.GetName().Name.Contains("Assembly-CSharp"));
+            foreach (var type in scriptAssembly.GetTypes())
+                if (type.IsSubclassOf(typeof(UModule)))
+                    PluginModules.Add(type.Name, type);
         }
     }
 }

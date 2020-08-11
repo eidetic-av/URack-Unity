@@ -16,7 +16,6 @@ namespace Eidetic.URack
         public static GameObject GetPrefab(string moduleName)
         {
             var prefabName = moduleName + "Prefab.prefab";
-            GameObject prefab;
 #if UNITY_EDITOR
             foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(moduleName.ToLower() + "assets"))
             {
@@ -25,6 +24,9 @@ namespace Eidetic.URack
                     return AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
             }
 #endif
+            if (!Application.ModuleAssetBundles.ContainsKey(moduleName))
+                return null;
+
             var assetBundle = Application.ModuleAssetBundles[moduleName];
             foreach (var assetName in assetBundle.GetAllAssetNames())
             {
@@ -34,6 +36,7 @@ namespace Eidetic.URack
                     return modulePrefab;
                 }
             }
+
             return null;
         }
 
