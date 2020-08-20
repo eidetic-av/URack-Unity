@@ -96,6 +96,17 @@ namespace Eidetic.URack
         }
 
         /// <summary>
+        /// Instantiate a GameObject.
+        /// </summary>
+        public static GameObject Instantiate(this GameObject gameObject)
+        {
+            if (!gameObject) return null;
+            var instance = GameObject.Instantiate(gameObject);
+            instance.name = gameObject.name;
+            return instance;
+        }
+
+        /// <summary>
         /// Return all types in the domain that derive from a specific base.
         /// </summary>
         public static List<Type> GetAllDerivedTypes(this AppDomain appDomain, Type type) =>
