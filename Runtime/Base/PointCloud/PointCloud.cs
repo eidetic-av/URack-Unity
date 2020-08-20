@@ -17,19 +17,10 @@ namespace Eidetic.URack
 
         public int PointCount => PositionMap.width * PositionMap.height;
 
-        // TODO get rid of this kind of access (or abstract the maps if necessary):
-        public Point[] Points = new Point[0];
-
-        [Serializable]
-        public struct Point
-        {
-            public Vector3 Position;
-            public Color Color;
-        }
-
         ComputeShader setPointsShader;
         ComputeShader SetPointsShader => setPointsShader ??
             (setPointsShader = Resources.Load<ComputeShader>("PointCloudSetPointsShader"));
+
         int SetPointsHandle => SetPointsShader.FindKernel("SetPoints");
 
         public (Texture2D, Texture2D) SetPoints(IEnumerable<Vector3> positions, IEnumerable<Color> colors) =>
@@ -75,6 +66,27 @@ namespace Eidetic.URack
             colorsBuffer.Release();
 
             return (PositionMap, ColorMap);
+        }
+
+        public (Texture2D, Texture2D) SetPoints(float[] positions, byte[] colors)
+        {
+            // TODO process this in parrallel
+            var pointCount = positions.Length / 3;
+            var positionVectors = new Vector3[pointCount];
+            var packedColors = new Color[pointCount];
+            for (int i = 0; i < pointCount; i++)
+            {
+                var index = i * 3;
+                var x = positions[index] * -1;
+                var y = positions[index + 1] * -1;
+                var z = positions[index + 2];
+                positionVectors[i] = new Vector3(x, y, z);
+                var r = colors[index] / 256f;
+                var g = colors[index + 1] / 256f;
+                var b = colors[index + 2] / 256f;
+                packedColors[i] = new Color(r, g, b);
+            }
+            return SetPoints(positionVectors, packedColors);
         }
 
         public void SetPositionMap(Texture src)
