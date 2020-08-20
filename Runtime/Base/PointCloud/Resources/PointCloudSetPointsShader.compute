@@ -14,7 +14,6 @@ void SetPoints (uint3 id : SV_DispatchThreadID)
 {
     // Set dummy values for pixels that are only there
     // to fill up the texture row.
-
     if (id.x < PointCount)
     {
         uint i = id.x + (id.y * Width);
