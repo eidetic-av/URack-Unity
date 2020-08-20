@@ -51,6 +51,7 @@ namespace Eidetic.URack.Osc
         {
             if (target.Property.Name == "Active") OnModuleSetActive(target.Instance, value);
         };
+        public static event Action<UModule> OnConnectionCreated = (moduleInstance) => { };
 
         void Start()
         {
@@ -222,6 +223,7 @@ namespace Eidetic.URack.Osc
                                 moduleInstance.Connections.Add(outputGetter, new List<UModule.Setter>() { inputSetter });
                             else if (!moduleInstance.Connections[outputGetter].Contains(inputSetter))
                                 moduleInstance.Connections[outputGetter].Add(inputSetter);
+                            OnConnectionCreated(moduleInstance);
                         }
                         // disconnecting a port
                         else if (address[3] == "Disconnect")
