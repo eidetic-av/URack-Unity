@@ -1,0 +1,20 @@
+{
+    "name": "Eidetic.URack.Runtime",
+    "rootNamespace": "",
+    "references": [
+        "Unity.VisualEffectGraph.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.Mathematics",
+        "Eidetic.ColorExtensions",
+        "Eidetic.PointClouds.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
