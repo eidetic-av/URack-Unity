@@ -15,6 +15,12 @@ namespace Eidetic.URack
     {
         public static GameObject GetPrefab(string moduleName)
         {
+            // Check in Resources
+            var resourceResults = Resources.LoadAll(moduleName + "Prefab");
+            if (resourceResults?.Count() != 0)
+                return resourceResults.SingleOrDefault() as GameObject;
+
+            // check inside asset bundles available to the editor
             var prefabName = moduleName + "Prefab.prefab";
 #if UNITY_EDITOR
             foreach (var assetPath in AssetDatabase.GetAssetPathsFromAssetBundle(moduleName.ToLower() + "assets"))
@@ -24,6 +30,7 @@ namespace Eidetic.URack
                     return AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
             }
 #endif
+            // check inside asset bundles available to the runtime
             if (!Application.ModuleAssetBundles.ContainsKey(moduleName))
                 return null;
 
@@ -110,7 +117,7 @@ namespace Eidetic.URack
         public List<PointCloud> GetPointCloudAssets(string searchFilter = "")
         {
             var pointClouds = new List<PointCloud>();
-            
+
             if (ModuleType == null || ModuleType == "") return pointClouds;
 
             // Check in resources
